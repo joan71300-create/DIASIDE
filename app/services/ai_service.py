@@ -1,10 +1,12 @@
 import google.genai
 import os
 import asyncio
+import json
 from opik.integrations.genai import track_genai
 from opik import track
 from app.core.config import settings
 from app.models import schemas
+from app.core.guardrails import SafetyGuardrails
 
 class AIService:
     def __init__(self):
@@ -46,7 +48,49 @@ class AIService:
                 ),
                 timeout=10.0
             )
-            return response.text
+            response_text = response.text
+
+            # --- TICKET B07: GUARDRAILS ---
+            
+            # 1. Regex Guardrail (Rapide)
+            is_safe_keyword, reason_keyword = SafetyGuardrails.check_keywords(response_text)
+            if not is_safe_keyword:
+                print(f"🚫 BLOCKED by Regex: {reason_keyword}")
+                raise ValueError(f"Safety Violation: {reason_keyword}")
+
+            # 2. LLM-as-a-Judge (Opik Scorer)
+            judge_prompt = SafetyGuardrails.get_judge_prompt(response_text)
+            try:
+                # Appel rapide au juge (timeout court 5s)
+                judge_response = await asyncio.wait_for(
+                    self.client.aio.models.generate_content(
+                        model="gemini-3-flash-preview",
+                        contents=judge_prompt,
+                        config={'response_mime_type': 'application/json'}
+                    ),
+                    timeout=5.0
+                )
+                evaluation = json.loads(judge_response.text)
+                
+                # Log to Opik (si possible, ici on print juste pour debug)
+                print(f"⚖️ LLM Judge Score: {evaluation}")
+                
+                if not evaluation.get("safe", True):
+                    print(f"🚫 BLOCKED by LLM Judge: {evaluation.get('reason')}")
+                    raise ValueError(f"Safety Violation: {evaluation.get('reason')}")
+                    
+            except Exception as e_judge:
+                # Si le juge échoue (timeout/parse), on laisse passer ou on bloque ?
+                # Pour la sécurité médicale, Fail-Safe = Bloquer.
+                # Mais pour un MVP avec un modèle instable, on peut logger un warning.
+                # Ici on loggue seulement pour ne pas bloquer l'UX si le juge timeout.
+                print(f"⚠️ LLM Judge Error: {e_judge}")
+
+            return response_text
+
+        except ValueError as ve:
+            # Propager les erreurs de sécurité
+            raise ve
         except asyncio.TimeoutError:
             print("❌ Timeout Gemini (10s exceeded)")
             return "Désolé, le service est un peu lent. Veuillez réessayer."

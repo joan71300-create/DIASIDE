@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
 from app.models import schemas, models
 from app.models.database import get_db
@@ -30,7 +30,12 @@ async def get_coach_advice(
     
     # 2. Appel au Prompt Engine (Gemini 3.0)
     # L'injection du JSON user_results se fait dans le service
-    analysis_text = await ai_service.generate_coach_advice(user_results)
+    try:
+        analysis_text = await ai_service.generate_coach_advice(user_results)
+    except ValueError as e:
+        if "Safety Violation" in str(e):
+            raise HTTPException(status_code=403, detail="Advice not allowed")
+        raise e
     
     # 3. Retour réponse brute (texte) ou structure enrichie si besoin.
     # Le ticket demande "renvoie la réponse brute", mais on peut renvoyer un JSON.
