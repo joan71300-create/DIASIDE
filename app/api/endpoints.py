@@ -5,7 +5,7 @@ from app.models.database import get_db
 from app.services.ai_service import ai_service
 from app.api.auth import get_current_user
 from app.core.logger import request_id_context
-from app.core.stability_engine import adjust_hba1c
+from app.core.stability_engine import analyze_stability
 from datetime import datetime, timedelta
 from sqlalchemy import func
 import uuid
@@ -25,10 +25,20 @@ async def get_coach_advice(
     et interroge Gemini 3.0 (Prompt Engine) avec les résultats.
     Retourne la réponse brute de l'IA.
     """
-    # 1. Calcul de l'ajustement HbA1c (Moteur de Stabilité)
-    user_results = adjust_hba1c(snapshot.lab_data, snapshot.lifestyle)
+    # 1. Calcul de la moyenne glissante (90j) depuis la base de données (T-M001)
+    ninety_days_ago = datetime.utcnow() - timedelta(days=90)
+    avg_result = db.query(func.avg(models.GlucoseEntry.value)).filter(
+        models.GlucoseEntry.user_id == current_user.id,
+        models.GlucoseEntry.timestamp >= ninety_days_ago
+    ).scalar()
     
-    # 2. Appel au Prompt Engine (Gemini 3.0)
+    # Si pas de données, on utilise la glycémie à jeun du snapshot comme estimation
+    rolling_avg = float(avg_result) if avg_result else float(snapshot.lab_data.fasting_glucose)
+
+    # 2. Analyse Complète de Stabilité (Ajustement HbA1c + Gap Analysis)
+    user_results = analyze_stability(snapshot.lab_data, snapshot.lifestyle, rolling_avg)
+    
+    # 3. Appel au Prompt Engine (Gemini 3.0)
     # L'injection du JSON user_results se fait dans le service
     try:
         analysis_text = await ai_service.generate_coach_advice(user_results)
