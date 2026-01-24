@@ -28,7 +28,7 @@ class GlucoseData(BaseModel):
 async def analyze_glucose(data: GlucoseData):
     print(f"--- Analyse en cours pour : {data.value} mg/dL ---")
     try:
-        # On utilise gemini-1.5-flash qui est plus stable sur les quotas
+        # On utilise gemini-3-flash-preview qui est plus stable sur les quotas
         response = gemini_client.models.generate_content(
             model="gemini-3-flash-preview", 
             contents=f"Le patient a {data.value} mg/dL de glucose. Donne un conseil court."

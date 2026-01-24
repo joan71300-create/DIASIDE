@@ -11,8 +11,8 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text("Profil")),
       body: Center(
         child: ElevatedButton(
-          onPressed: () {
-            ref.read(authProvider.notifier).state = false;
+          onPressed: () async {
+            await logout(ref);
           },
           child: const Text("Se déconnecter"),
         ),

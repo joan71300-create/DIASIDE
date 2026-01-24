@@ -56,11 +56,30 @@ class GlucoseInputScreen extends ConsumerWidget {
               itemCount: glucoseEntries.length,
               itemBuilder: (context, index) {
                 final entry = glucoseEntries[index];
-                return ListTile(
-                  leading: const Icon(Icons.bloodtype, color: Colors.red),
-                  title: Text("${entry.value} mg/dL"),
-                  subtitle: Text(
-                    "${entry.timestamp.hour}h${entry.timestamp.minute}",
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    leading: const Icon(Icons.bloodtype, color: Colors.red),
+                    title: Text("${entry.value} mg/dL"),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${entry.timestamp.hour}h${entry.timestamp.minute.toString().padLeft(2, '0')}",
+                        ),
+                        if (entry.analysis != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            "Conseil: ${entry.analysis}",
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ]
+                      ],
+                    ),
+                    isThreeLine: entry.analysis != null,
                   ),
                 );
               },
