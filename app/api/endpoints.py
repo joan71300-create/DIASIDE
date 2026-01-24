@@ -74,3 +74,24 @@ def validate_health_snapshot(
         "temp_id": temp_id,
         "data": snapshot
     }
+
+@router.post("/cgm", response_model=schemas.GlucoseEntry)
+def receive_cgm_ping(
+    ping: schemas.CGMPing,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Ticket T-API001: Réception des pings CGM.
+    Enregistre une nouvelle mesure de glucose provenant d'un capteur.
+    """
+    db_entry = models.GlucoseEntry(
+        user_id=current_user.id,
+        value=ping.value,
+        timestamp=ping.timestamp or datetime.utcnow(),
+        note=f"CGM Upload ({ping.device_id})"
+    )
+    db.add(db_entry)
+    db.commit()
+    db.refresh(db_entry)
+    return db_entry
