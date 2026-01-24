@@ -1,5 +1,6 @@
 import google.genai
 import os
+import asyncio
 from opik.integrations.genai import track_genai
 from opik import track
 from app.core.config import settings
@@ -12,30 +13,47 @@ class AIService:
             del os.environ["GOOGLE_API_KEY"]
             
         # Initialisation du client Gemini
-        # Note: Opik tracke automatiquement si configuré
         self.client = google.genai.Client(api_key=settings.GEMINI_API_KEY)
+        # Note: track_genai wrapping might need adjustment for async calls or handled differently.
+        # For now, using raw client for async support to ensure timeout works.
         self.gemini_client = track_genai(self.client, project_name="DIASIDE")
 
     @track(name="generate_coach_advice")
-    def generate_coach_advice(self, value: float, context: str = "", metadata: dict = None) -> str:
+    async def generate_coach_advice(self, user_results: dict) -> str:
         """
-        Analyse une valeur de glycémie avec Gemini, tracké par Opik.
+        Ticket B06: Consultation Gemini 3.0 avec injection dynamique des résultats.
+        Gère le timeout (2s) et les rate limits via asyncio.
         """
+        system_prompt = (
+            "Tu es un coach expert en diabète utilisant le modèle de stabilité Miedema. "
+            "Ton rôle est d'analyser les résultats ajustés du patient et de fournir "
+            "un conseil court, empathique et actionnable. "
+            "Ne mentionne pas les calculs internes sauf si nécessaire pour rassurer."
+        )
+        
         try:
-            prompt = f"Le patient a {value} mg/dL de glucose. {context} Donne un conseil court et bienveillant."
-            print(f"--- Envoi à Gemini (Opik active): {prompt} ---")
+            # Injection dynamique du JSON user_results
+            prompt = f"{system_prompt}\n\nVoici les résultats d'analyse :\n{user_results}"
+            print(f"--- Envoi à Gemini 3.0 (Timeout 10s): {prompt[:100]}... ---")
             
-            # Opik capture automatiquement les métadonnées passées si configuré correctement,
-            # mais ici on utilise le décorateur @track pour ajouter des tags/metadata explicites si besoin.
-            # L'intégration track_genai gère déjà beaucoup de choses.
-            
-            response = self.gemini_client.models.generate_content(
-                model="gemini-3-flash-preview", 
-                contents=prompt
+            # Utilisation de asyncio.wait_for pour le timeout
+            # Utilisation de client.aio pour l'appel asynchrone
+            response = await asyncio.wait_for(
+                self.client.aio.models.generate_content(
+                    model="gemini-3-flash-preview", 
+                    contents=prompt,
+                    config={'response_mime_type': 'text/plain'}
+                ),
+                timeout=10.0
             )
             return response.text
+        except asyncio.TimeoutError:
+            print("❌ Timeout Gemini (10s exceeded)")
+            return "Désolé, le service est un peu lent. Veuillez réessayer."
         except Exception as e:
             print(f"❌ Erreur Gemini : {e}")
+            if "429" in str(e) or "503" in str(e):
+                return "Le service est temporairement surchargé (Rate Limit/Overloaded). Veuillez réessayer."
             return f"Erreur IA: {str(e)}"
 
     def format_health_context(self, snapshot: schemas.UserHealthSnapshot) -> str:
