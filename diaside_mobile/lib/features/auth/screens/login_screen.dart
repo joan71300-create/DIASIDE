@@ -31,9 +31,22 @@ class LoginScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                // Simule une connexion réussie en passant l'état à true
-                ref.read(authProvider.notifier).state = true;
+              onPressed: () async {
+                final success = await login(
+                  emailController.text,
+                  passwordController.text,
+                  ref,
+                );
+
+                if (context.mounted) {
+                  if (success) {
+                    Navigator.of(context).pushReplacementNamed('/main');
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Échec de la connexion")),
+                    );
+                  }
+                }
               },
               child: const Text("Se connecter"),
             ),

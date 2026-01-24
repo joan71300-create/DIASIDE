@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/register_screen.dart';
 import 'shared/screens/main_navigation_screen.dart';
 
 void main() {
@@ -14,7 +15,7 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLoggedIn = ref.watch(authProvider);
+    final token = ref.watch(accessTokenProvider);
 
     return MaterialApp(
       title: 'DIASIDE',
@@ -23,7 +24,12 @@ class MyApp extends ConsumerWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
-      home: isLoggedIn ? const MainNavigationScreen() : const LoginScreen(),
+      home: token != null ? const MainNavigationScreen() : const LoginScreen(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/main': (context) => const MainNavigationScreen(),
+      },
     );
   }
 }
