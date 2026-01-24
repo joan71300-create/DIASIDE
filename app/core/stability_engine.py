@@ -54,52 +54,43 @@ def adjust_hba1c(lab: LabData, lifestyle: LifestyleProfile) -> dict:
         "analysis_summary": analysis_summary
     }
 
-def calculate_hba1c_adjustment(current_glucose: float, rolling_avg: float, questionnaire: dict = None) -> tuple[float, float, str]:
+def estimate_hba1c_from_glucose(avg_glucose: float) -> float:
     """
-    Calculate adjusted HbA1c using Miedema kinetic model.
-
-    Args:
-        current_glucose: Current glucose level in mg/dL
-        rolling_avg: 90-day rolling average glucose in mg/dL
-        questionnaire: JSON dict with user factors (age, smoking, etc.)
-
-    Returns:
-        tuple: (hba1c_adjusted, correction_factor, french_summary)
+    Estimate HbA1c from Average Glucose using Miedema formula.
+    HbA1c = (AvgGlucose + 46.7) / 28.7
     """
-    if questionnaire is None:
-        questionnaire = {}
-        
-    # Base HbA1c estimation from rolling average
-    # Formula: HbA1c (%) = (glucose + 46.7) / 28.7
-    # Note: rolling_avg represents MBG (Mean Blood Glucose)
-    base_hba1c = (rolling_avg + 46.7) / 28.7
+    return (avg_glucose + 46.7) / 28.7
 
-    # Calculate correction factor based on questionnaire
-    correction_factor = 0.0
-
-    # Age adjustment
-    age = questionnaire.get('age', 0)
-    if age > 60:
-        correction_factor += 0.2
-    elif age < 30:
-        correction_factor -= 0.1
-
-    # Smoking adjustment
-    if questionnaire.get('is_smoker', False) or questionnaire.get('smoking', '').lower() == 'yes':
-        correction_factor += 0.3
-
-    # Other factors (placeholder for more)
-    if questionnaire.get('diabetes_type', '') == 'type1':
-        correction_factor += 0.1
-
-    # Adjustment based on current vs average
-    glucose_diff = current_glucose - rolling_avg
+def analyze_stability(lab: LabData, lifestyle: LifestyleProfile, rolling_avg_90d: float) -> dict:
+    """
+    Complete Stability Analysis (Ticket T-M001 + B05).
+    Combines:
+    1. Lab HbA1c Adjustment (Bias correction).
+    2. Estimated HbA1c from CGM data (Miedema).
+    3. Gap analysis.
+    """
+    # 1. Adjust Lab HbA1c (Bias)
+    lab_analysis = adjust_hba1c(lab, lifestyle)
+    hba1c_lab_adjusted = lab_analysis["hba1c_adjusted"]
     
-    # Simple adjustment model combining factors
-    hba1c_adjusted = base_hba1c + correction_factor
+    # 2. Estimate from Glucose (CGM)
+    hba1c_estimated = estimate_hba1c_from_glucose(rolling_avg_90d)
+    
+    # 3. Gap Analysis
+    gap = hba1c_lab_adjusted - hba1c_estimated
+    gap_analysis = ""
+    
+    if abs(gap) < 0.5:
+        gap_analysis = "Cohérence excellente entre CGM et Labo."
+    elif gap > 0.5:
+        gap_analysis = f"HbA1c Labo plus élevée que prévu (+{gap:.2f}%). Glycation rapide possible ou pics post-prandiaux manqués."
+    else:
+        gap_analysis = f"HbA1c Labo plus basse que prévu ({gap:.2f}%). Glycation lente ou hypoglycémies fréquentes."
 
-    # French summary
-    summary = (f"HbA1c calculée via Miedema : {hba1c_adjusted:.1f}% "
-               f"(MBG: {rolling_avg:.0f} mg/dL).")
-
-    return hba1c_adjusted, correction_factor, summary
+    return {
+        **lab_analysis,
+        "hba1c_estimated_from_cgm": round(hba1c_estimated, 2),
+        "gap": round(gap, 2),
+        "gap_analysis": gap_analysis,
+        "rolling_avg_90d": round(rolling_avg_90d, 1)
+    }
