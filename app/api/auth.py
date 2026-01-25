@@ -17,7 +17,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Email already registered")
         
         hashed_password = security.get_password_hash(user.password)
-        print(f"Register: email={user.email}, password={user.password}, hashed={hashed_password}")
+        print(f"Register: email={user.email}")
         db_user = models.User(email=user.email, hashed_password=hashed_password)
         db.add(db_user)
         db.commit()
@@ -30,7 +30,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    print(f"Login attempt: username={form_data.username}, password={form_data.password}")
+    print(f"Login attempt: username={form_data.username}")
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
     if not user:
         print("User not found")
@@ -39,9 +39,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    print(f"User found: {user.email}, hashed: {user.hashed_password}")
+    # print(f"User found: {user.email}")
     verified = security.verify_password(form_data.password, user.hashed_password)
-    print(f"Password verified: {verified}")
+    # print(f"Password verified: {verified}")
     if not verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
