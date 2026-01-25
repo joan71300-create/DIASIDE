@@ -65,6 +65,7 @@ class CGMPing(BaseModel):
     timestamp: Optional[datetime] = Field(default_factory=datetime.utcnow)
     device_id: Optional[str] = "unknown"
     trend: Optional[str] = None # e.g. "stable", "rising", "falling"
+    questionnaire: Optional[QuestionnaireBase] = Field(None, description="Contextual questionnaire data")
 
 # --- Analysis ---
 class AIAnalysisResponse(BaseModel):

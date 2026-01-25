@@ -94,7 +94,25 @@ def receive_cgm_ping(
     """
     Ticket T-API001: Réception des pings CGM.
     Enregistre une nouvelle mesure de glucose provenant d'un capteur.
+    Met à jour le questionnaire si fourni (T-SEC001).
     """
+    # Mise à jour du Questionnaire (T-SEC001)
+    if ping.questionnaire:
+        # Check if exists
+        db_quest = db.query(models.Questionnaire).filter(models.Questionnaire.user_id == current_user.id).first()
+        if db_quest:
+            # Update
+            for key, value in ping.questionnaire.model_dump().items():
+                setattr(db_quest, key, value)
+        else:
+            # Create
+            db_quest = models.Questionnaire(
+                user_id=current_user.id,
+                **ping.questionnaire.model_dump()
+            )
+            db.add(db_quest)
+        db.commit()
+
     db_entry = models.GlucoseEntry(
         user_id=current_user.id,
         value=ping.value,
