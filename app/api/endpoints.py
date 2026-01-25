@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
+from opik import track
 from app.models import schemas, models
 from app.models.database import get_db
 from app.services.ai_service import ai_service
@@ -13,6 +14,7 @@ import uuid
 router = APIRouter()
 
 @router.post("/ai/coach")
+@track(name="api_coach_advice")
 async def get_coach_advice(
     snapshot: schemas.UserHealthSnapshot,
     request: Request,
@@ -54,6 +56,7 @@ async def get_coach_advice(
     )
 
 @router.get("/history", response_model=list[schemas.GlucoseEntry])
+@track(name="api_read_history")
 def read_history(
     skip: int = 0, 
     limit: int = 10, 
@@ -66,6 +69,7 @@ def read_history(
     return entries
 
 @router.post("/health/snapshot", response_model=schemas.HealthSnapshotResponse)
+@track(name="api_health_snapshot")
 def validate_health_snapshot(
     snapshot: schemas.UserHealthSnapshot,
     current_user: models.User = Depends(get_current_user)
@@ -83,6 +87,7 @@ def validate_health_snapshot(
     }
 
 @router.post("/cgm", response_model=schemas.GlucoseEntry)
+@track(name="api_receive_cgm")
 def receive_cgm_ping(
     ping: schemas.CGMPing,
     current_user: models.User = Depends(get_current_user),

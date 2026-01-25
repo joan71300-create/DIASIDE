@@ -1,5 +1,7 @@
 # DIASIDE - AI Diabetes Assistant
 
+![CI](https://github.com/joan71300-create/DIASIDE/actions/workflows/main.yml/badge.svg)
+
 DiaSide est une application de gestion du diabète assistée par l'intelligence artificielle générative (Gemini 3.0), avec une traçabilité complète des décisions (Opik).
 
 ## 🏗️ Architecture Technique
@@ -65,7 +67,9 @@ flutter run
 
 ## 📚 API Endpoints Clés
 
-*   `POST /auth/token` : Login.
+*   `GET /health` : Health Check.
+*   `POST /auth/login` : Login.
+*   `POST /auth/register` : Inscription.
 *   `POST /api/cgm` : Upload données glucose.
 *   `POST /api/ai/coach` : Génération de conseil IA contextuel.
 *   `POST /api/health/snapshot` : Mise à jour profil biologique.

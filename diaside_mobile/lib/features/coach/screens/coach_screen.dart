@@ -116,7 +116,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                   ),
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(labelText: "Type de Diabète"),
-                    value: _diabetesType,
+                    initialValue: _diabetesType,
                     items: ["Type 1", "Type 2", "Gestational"].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                     onChanged: (v) => setState(() => _diabetesType = v!),
                   ),
@@ -150,7 +150,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                   const Text("Mode de Vie", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(labelText: "Activité"),
-                    value: _activityLevel,
+                    initialValue: _activityLevel,
                     items: ["sedentary", "moderate", "active"].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                     onChanged: (v) => setState(() => _activityLevel = v!),
                   ),

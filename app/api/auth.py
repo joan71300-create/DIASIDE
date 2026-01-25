@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from opik import track
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from app.core import security
 from app.models import models, schemas
@@ -10,6 +11,7 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 @router.post("/register", response_model=schemas.User)
+@track(name="api_register")
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     try:
         db_user = db.query(models.User).filter(models.User.email == user.email).first()
@@ -29,6 +31,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @router.post("/login", response_model=schemas.Token)
+@track(name="api_login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     print(f"Login attempt: username={form_data.username}")
     user = db.query(models.User).filter(models.User.email == form_data.username).first()

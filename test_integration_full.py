@@ -129,11 +129,19 @@ def test_full_scenario():
     print(data.get("advice"))
     print("---------------------------------------------------")
     
+    actions = data.get("actions", [])
+    if actions:
+        print(f"\n🚀 Actions ({len(actions)}):")
+        for a in actions:
+            print(f"   - [{a['type']}] {a['label']}")
+    
     # Assertions
     assert debug.get('rolling_avg_90d') == 150.0
     assert abs(debug.get('gap')) < 0.1
     assert "Cohérence excellente" in debug.get('gap_analysis')
     assert len(data.get("advice")) > 10
+    # Gemini might return actions or not depending on prompt adherence, but the field should exist
+    assert "actions" in data
 
     print("\n✅ Full Scenario PASSED!")
 

@@ -6,6 +6,7 @@ if "GOOGLE_API_KEY" in os.environ:
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from opik import track
 from app.core.config import settings
 from app.api import auth, endpoints
 from app.models.database import engine, Base
@@ -21,6 +22,14 @@ app = FastAPI(
     version=settings.VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+@app.get("/health")
+@track(name="api_health")
+def health_check():
+    """
+    S1-T03: Health Check Endpoint.
+    """
+    return {"status": "ok", "version": settings.VERSION}
 
 @app.middleware("http")
 async def correlation_middleware(request: Request, call_next):
