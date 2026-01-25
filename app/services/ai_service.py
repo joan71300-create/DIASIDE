@@ -21,16 +21,20 @@ class AIService:
         self.gemini_client = track_genai(self.client, project_name="DIASIDE")
 
     @track(name="generate_coach_advice")
-    async def generate_coach_advice(self, user_results: dict) -> str:
+    async def generate_coach_advice(self, user_results: dict) -> dict:
         """
-        Ticket B06: Consultation Gemini 3.0 avec injection dynamique des résultats.
-        Gère le timeout (2s) et les rate limits via asyncio.
+        Ticket B06/DS-B-011: Consultation Gemini 3.0 avec injection dynamique et réponse structurée (JSON).
+        Gère le timeout (10s) et les rate limits.
         """
         system_prompt = (
             "Tu es un coach expert en diabète utilisant le modèle de stabilité Miedema. "
             "Ton rôle est d'analyser les résultats ajustés du patient et de fournir "
-            "un conseil court, empathique et actionnable. "
-            "Ne mentionne pas les calculs internes sauf si nécessaire pour rassurer."
+            "un conseil court, empathique et actionnable.\n"
+            "Format de réponse JSON attendu :\n"
+            "{\n"
+            '  "advice": "texte du conseil",\n'
+            '  "actions": [{"label": "Action courte (ex: Marche 10min)", "type": "sport|diet|check|medical"}]\n'
+            "}"
         )
         
         try:
@@ -44,22 +48,30 @@ class AIService:
                 self.client.aio.models.generate_content(
                     model="gemini-3-flash-preview", 
                     contents=prompt,
-                    config={'response_mime_type': 'text/plain'}
+                    config={'response_mime_type': 'application/json'}
                 ),
                 timeout=10.0
             )
             response_text = response.text
+            
+            # Parsing JSON
+            try:
+                response_json = json.loads(response_text)
+                advice_text = response_json.get("advice", "")
+            except json.JSONDecodeError:
+                # Fallback si le modèle renvoie du texte brut
+                response_json = {"advice": response_text, "actions": []}
+                advice_text = response_text
 
             # --- TICKET B07: GUARDRAILS ---
-            
-            # 1. Regex Guardrail (Rapide)
-            is_safe_keyword, reason_keyword = SafetyGuardrails.check_keywords(response_text)
+            # On vérifie le texte du conseil
+            is_safe_keyword, reason_keyword = SafetyGuardrails.check_keywords(advice_text)
             if not is_safe_keyword:
                 print(f"🚫 BLOCKED by Regex: {reason_keyword}")
                 raise ValueError(f"Safety Violation: {reason_keyword}")
 
             # 2. LLM-as-a-Judge (Opik Scorer)
-            judge_prompt = SafetyGuardrails.get_judge_prompt(response_text)
+            judge_prompt = SafetyGuardrails.get_judge_prompt(advice_text)
             try:
                 # Appel rapide au juge (timeout court 5s)
                 judge_response = await asyncio.wait_for(
@@ -72,7 +84,7 @@ class AIService:
                 )
                 evaluation = json.loads(judge_response.text)
                 
-                # Log to Opik (si possible, ici on print juste pour debug)
+                # Log to Opik
                 print(f"⚖️ LLM Judge Score: {evaluation}")
                 
                 if not evaluation.get("safe", True):
@@ -80,25 +92,20 @@ class AIService:
                     raise ValueError(f"Safety Violation: {evaluation.get('reason')}")
                     
             except Exception as e_judge:
-                # Si le juge échoue (timeout/parse), on laisse passer ou on bloque ?
-                # Pour la sécurité médicale, Fail-Safe = Bloquer.
-                # Mais pour un MVP avec un modèle instable, on peut logger un warning.
-                # Ici on loggue seulement pour ne pas bloquer l'UX si le juge timeout.
                 print(f"⚠️ LLM Judge Error: {e_judge}")
 
-            return response_text
+            return response_json
 
         except ValueError as ve:
-            # Propager les erreurs de sécurité
             raise ve
         except asyncio.TimeoutError:
             print("❌ Timeout Gemini (10s exceeded)")
-            return "Désolé, le service est un peu lent. Veuillez réessayer."
+            return {"advice": "Désolé, le service est un peu lent. Veuillez réessayer.", "actions": []}
         except Exception as e:
             print(f"❌ Erreur Gemini : {e}")
             if "429" in str(e) or "503" in str(e):
-                return "Le service est temporairement surchargé (Rate Limit/Overloaded). Veuillez réessayer."
-            return f"Erreur IA: {str(e)}"
+                return {"advice": "Le service est temporairement surchargé. Veuillez réessayer.", "actions": []}
+            return {"advice": f"Erreur IA: {str(e)}", "actions": []}
 
     def format_health_context(self, snapshot: schemas.UserHealthSnapshot) -> str:
         """

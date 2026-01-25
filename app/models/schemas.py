@@ -68,11 +68,14 @@ class CGMPing(BaseModel):
     questionnaire: Optional[QuestionnaireBase] = Field(None, description="Contextual questionnaire data")
 
 # --- Analysis ---
+class CoachAction(BaseModel):
+    label: str
+    type: str # "sport", "diet", "check", "medical"
+
 class AIAnalysisResponse(BaseModel):
-    analysis: str
-    hba1c_adjusted: float
-    correction_factor: float
-    stability_summary: str
+    advice: str
+    actions: List[CoachAction] = []
+    debug_results: dict
 
 # --- Health Profile (Ticket 03) ---
 class ActivityLevel(str, Enum):

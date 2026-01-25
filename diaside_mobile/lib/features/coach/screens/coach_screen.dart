@@ -27,6 +27,21 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
   bool _isSmoker = false;
   bool _isAthlete = false;
 
+  IconData _getIconForAction(String type) {
+    switch (type.toLowerCase()) {
+      case 'sport':
+        return Icons.directions_run;
+      case 'diet':
+        return Icons.restaurant;
+      case 'check':
+        return Icons.monitor_heart;
+      case 'medical':
+        return Icons.medical_services;
+      default:
+        return Icons.lightbulb;
+    }
+  }
+
   void _submit() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -185,6 +200,22 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                       const Text("💡 Conseil du Coach :", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Text(state.data!.advice, style: const TextStyle(fontSize: 16)),
+                      
+                      if (state.data!.actions.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Text("🚀 Actions Recommandées :", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Wrap(
+                          spacing: 8.0,
+                          children: state.data!.actions.map((action) => ActionChip(
+                            avatar: Icon(_getIconForAction(action.type), size: 16),
+                            label: Text(action.label),
+                            onPressed: () {
+                              // TODO: Log action clicked
+                            },
+                          )).toList(),
+                        ),
+                      ],
+
                       const Divider(),
                       const Text("🔍 Analyse de Stabilité :", style: TextStyle(fontWeight: FontWeight.bold)),
                       if (state.data!.debugResults['gap_analysis'] != null)

@@ -67,15 +67,38 @@ class UserHealthSnapshot {
   };
 }
 
+class CoachAction {
+  final String label;
+  final String type;
+
+  CoachAction({required this.label, required this.type});
+
+  factory CoachAction.fromJson(Map<String, dynamic> json) {
+    return CoachAction(
+      label: json['label'],
+      type: json['type'],
+    );
+  }
+}
+
 class CoachResponse {
   final String advice;
+  final List<CoachAction> actions;
   final Map<String, dynamic> debugResults;
 
-  CoachResponse({required this.advice, required this.debugResults});
+  CoachResponse({required this.advice, required this.actions, required this.debugResults});
 
   factory CoachResponse.fromJson(Map<String, dynamic> json) {
+    var actionsList = <CoachAction>[];
+    if (json['actions'] != null) {
+      actionsList = (json['actions'] as List)
+          .map((e) => CoachAction.fromJson(e))
+          .toList();
+    }
+
     return CoachResponse(
       advice: json['advice'],
+      actions: actionsList,
       debugResults: json['debug_results'] ?? {},
     );
   }

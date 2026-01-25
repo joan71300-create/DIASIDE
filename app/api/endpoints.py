@@ -38,23 +38,20 @@ async def get_coach_advice(
     # 2. Analyse Complète de Stabilité (Ajustement HbA1c + Gap Analysis)
     user_results = analyze_stability(snapshot.lab_data, snapshot.lifestyle, rolling_avg)
     
-    # 3. Appel au Prompt Engine (Gemini 3.0)
-    # L'injection du JSON user_results se fait dans le service
+    # 3. Appel au Prompt Engine (Gemini 3.0) - Retourne maintenant un DICT structuré
     try:
-        analysis_text = await ai_service.generate_coach_advice(user_results)
+        ai_response = await ai_service.generate_coach_advice(user_results)
     except ValueError as e:
         if "Safety Violation" in str(e):
             raise HTTPException(status_code=403, detail="Advice not allowed")
         raise e
     
-    # 3. Retour réponse brute (texte) ou structure enrichie si besoin.
-    # Le ticket demande "renvoie la réponse brute", mais on peut renvoyer un JSON.
-    # Pour respecter strictment "renvoie la réponse brute" (string), on pourrait renvoyer PlainTextResponse.
-    # Mais FastAPI par défaut renvoie du JSON. Renoyons un dict simple.
-    return {
-        "advice": analysis_text,
-        "debug_results": user_results
-    }
+    # 4. Construction de la réponse structurée (DS-B-011)
+    return schemas.AIAnalysisResponse(
+        advice=ai_response.get("advice", ""),
+        actions=ai_response.get("actions", []),
+        debug_results=user_results
+    )
 
 @router.get("/history", response_model=list[schemas.GlucoseEntry])
 def read_history(
