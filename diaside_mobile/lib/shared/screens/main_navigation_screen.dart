@@ -3,6 +3,7 @@ import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/glucose/glucose_screen.dart';
 import '../../features/meals/screens/meal_entry_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../../features/coach/screens/coach_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -18,6 +19,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     DashboardScreen(),
     GlucoseInputScreen(),
     MealEntryScreen(),
+    CoachScreen(),
     ProfileScreen(),
   ];
 
@@ -43,6 +45,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label: 'LogGlucose',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: 'Repas'),
+          BottomNavigationBarItem(icon: Icon(Icons.psychology), label: 'Coach'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
       ),
