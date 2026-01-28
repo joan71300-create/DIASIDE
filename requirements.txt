@@ -11,3 +11,4 @@ pyjwt
 python-multipart
 email-validator
 alembic
+pytest-asyncio

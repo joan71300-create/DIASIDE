@@ -21,15 +21,20 @@ class AIService:
         self.gemini_client = track_genai(self.client, project_name="DIASIDE")
 
     @track(name="generate_coach_advice")
-    async def generate_coach_advice(self, user_results: dict) -> dict:
+    async def generate_coach_advice(self, user_results: dict, history: list = [], user_message: str = None) -> dict:
         """
         Ticket B06/DS-B-011: Consultation Gemini 3.0 avec injection dynamique et réponse structurée (JSON).
         Gère le timeout (10s) et les rate limits.
+        
+        Ticket AI-001: Ajout du support Multi-Turn (history + user_message).
         """
         system_prompt = (
             "Tu es un coach expert en diabète utilisant le modèle de stabilité Miedema. "
             "Ton rôle est d'analyser les résultats ajustés du patient et de fournir "
             "un conseil court, empathique et actionnable.\n"
+            "INSTRUCTION CLÉ : Utilise l'historique de la conversation pour comprendre le contexte "
+            "et répondre précisément aux questions de suivi (ex: 'et si je fais du sport ?') "
+            "sans répéter les généralités déjà dites.\n"
             "Format de réponse JSON attendu :\n"
             "{\n"
             '  "advice": "texte du conseil",\n'
@@ -39,8 +44,23 @@ class AIService:
         
         try:
             # Injection dynamique du JSON user_results
-            prompt = f"{system_prompt}\n\nVoici les résultats d'analyse :\n{user_results}"
-            print(f"--- Envoi à Gemini 3.0 (Timeout 10s): {prompt[:100]}... ---")
+            prompt = f"{system_prompt}\n\nVoici les résultats d'analyse (Contexte Médical) :\n{user_results}"
+            
+            # --- TICKET AI-001: Context Injection ---
+            if history:
+                prompt += "\n\nHistorique de la conversation (derniers messages) :\n"
+                # Sliding window simple (last 5 messages) to save tokens
+                for msg in history[-5:]:
+                    # Handle both dict and Pydantic model
+                    role = getattr(msg, 'role', msg.get('role', 'user'))
+                    content = getattr(msg, 'content', msg.get('content', ''))
+                    prompt += f"- {role.upper()}: {content}\n"
+            
+            if user_message:
+                prompt += f"\n\nNouvelle question de l'utilisateur : {user_message}"
+            # ----------------------------------------
+
+            print(f"--- Envoi à Gemini 3.0 (Timeout 10s): {prompt[:200]}... ---")
             
             # Utilisation de asyncio.wait_for pour le timeout
             # Utilisation de client.aio pour l'appel asynchrone
