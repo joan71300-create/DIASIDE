@@ -14,8 +14,8 @@ from app.core.logger import request_id_context, logger
 import uuid
 import time
 
-# Création des tables (pour le hackathon, on le fait au démarrage)
-Base.metadata.create_all(bind=engine)
+# Création des tables (Géré par Alembic maintenant)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -65,7 +65,9 @@ async def correlation_middleware(request: Request, call_next):
 origins = [
     "http://localhost",
     "http://localhost:8080",
-    "*" # A restreindre en prod
+    "http://localhost:3000",
+    "http://127.0.0.1:8000",
+    "http://10.0.2.2:8000", # Android Emulator
 ]
 
 app.add_middleware(
