@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 
 class DiasideButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final bool isLoading;
-  final Color backgroundColor;
+  final Color? backgroundColor; // Optional override
 
   const DiasideButton({
     super.key,
     required this.label,
     required this.onPressed,
     this.isLoading = false,
-    this.backgroundColor = AppColors.primaryBlue,
+    this.backgroundColor,
   });
 
   @override
@@ -22,11 +23,12 @@ class DiasideButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
+          backgroundColor: backgroundColor ?? AppColors.primary,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(24),
           ),
+          elevation: 0,
         ),
         child: isLoading
             ? const SizedBox(
@@ -39,10 +41,11 @@ class DiasideButton extends StatelessWidget {
               )
             : Text(
                 label.toUpperCase(),
-                style: const TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
+                  fontSize: 16,
                 ),
               ),
       ),

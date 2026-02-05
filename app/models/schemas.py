@@ -6,6 +6,7 @@ from enum import Enum
 # --- Token ---
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 class TokenData(BaseModel):
@@ -28,11 +29,20 @@ class User(UserBase):
 # --- Questionnaire ---
 class QuestionnaireBase(BaseModel):
     age: int
+    gender: Optional[str] = None
     weight: float
     height: float
+    activity_level: Optional[str] = "moderate"
+    daily_step_goal: Optional[int] = 10000
+    dietary_preferences: Optional[str] = None
     diabetes_type: str
     target_glucose_min: float
     target_glucose_max: float
+    # HbA1c Goals
+    target_hba1c: Optional[float] = 7.0
+    target_hba1c_date: Optional[datetime] = None
+    last_lab_hba1c: Optional[float] = None # La valeur réelle de la prise de sang
+    hba1c_offset: Optional[float] = 0.0
 
 class QuestionnaireCreate(QuestionnaireBase):
     pass
@@ -41,6 +51,40 @@ class Questionnaire(QuestionnaireBase):
     id: int
     user_id: int
     
+    class Config:
+        from_attributes = True
+
+# --- Activity & Meals ---
+class DailyStatsBase(BaseModel):
+    date: datetime
+    steps: int
+    calories_burned: float
+    distance_km: float
+
+class DailyStatsCreate(DailyStatsBase):
+    pass
+
+class DailyStats(DailyStatsBase):
+    id: int
+    user_id: int
+    class Config:
+        from_attributes = True
+
+class MealBase(BaseModel):
+    timestamp: datetime
+    name: str
+    calories: Optional[float] = None
+    carbs: Optional[float] = None
+    protein: Optional[float] = None
+    fat: Optional[float] = None
+    image_url: Optional[str] = None
+
+class MealCreate(MealBase):
+    pass
+
+class Meal(MealBase):
+    id: int
+    user_id: int
     class Config:
         from_attributes = True
 
@@ -94,6 +138,8 @@ class LifestyleProfile(BaseModel):
     diet_type: str = Field(..., min_length=2, description="Type of diet (e.g. Keto, Vegan, Balanced)")
     is_smoker: bool
     is_athlete: bool = Field(False, description="Professional or high-intensity athlete status")
+    gender: Optional[str] = "Male" # Added default for backward comp
+    daily_step_goal: int = 10000
 
 class UserHealthSnapshot(BaseModel):
     age: int = Field(..., ge=0, le=120, description="Age in years")
@@ -102,6 +148,8 @@ class UserHealthSnapshot(BaseModel):
     diabetes_type: str = Field(..., pattern="^(Type 1|Type 2|Gestational)$", description="Type of diabetes")
     lab_data: LabData
     lifestyle: LifestyleProfile
+    recent_activity: List[DailyStats] = []
+    recent_meals: List[Meal] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -109,3 +157,24 @@ class HealthSnapshotResponse(BaseModel):
     message: str
     temp_id: str
     data: UserHealthSnapshot
+
+# --- Chat / Context Awareness (AI-001) ---
+class ChatMessage(BaseModel):
+    role: str # "user" or "model"
+    content: str
+
+class ChatRequest(BaseModel):
+    snapshot: UserHealthSnapshot
+    history: List[ChatMessage] = []
+    user_message: Optional[str] = None
+    image_base64: Optional[str] = Field(None, description="Base64 encoded image for analysis")
+
+class NightscoutSyncRequest(BaseModel):
+    url: str = Field(..., description="URL of the Nightscout instance (e.g. https://my-ns.herokuapp.com)")
+    token: Optional[str] = Field(None, description="API Secret or Token for authentication")
+
+class MedtrumConnectRequest(BaseModel):
+    username: str
+    password: str
+    region: str = "fr" # ou "com"
+

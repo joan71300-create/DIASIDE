@@ -1,9 +1,11 @@
+import pytest
+import asyncio
 from app.models.schemas import LabData, LifestyleProfile, ActivityLevel
 from app.core.stability_engine import adjust_hba1c
 from app.services.ai_service import ai_service
 import time
-import asyncio
 
+@pytest.mark.asyncio
 async def test_ticket_b06():
     print("🧪 Starting Ticket B06 Verification (Gemini 3.0 Prompt Engine)...\n")
     

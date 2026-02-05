@@ -14,6 +14,16 @@ Future<bool> login(String email, String password, WidgetRef ref) async {
   return success;
 }
 
+// Fonction pour se connecter avec Google
+Future<bool> loginWithGoogle(WidgetRef ref) async {
+  final success = await authService.signInWithGoogle();
+  if (success) {
+    final token = await authService.getToken();
+    ref.read(accessTokenProvider.notifier).state = token;
+  }
+  return success;
+}
+
 // Fonction pour s'inscrire
 Future<String?> register(String email, String password, WidgetRef ref) async {
   return await authService.register(email, password);

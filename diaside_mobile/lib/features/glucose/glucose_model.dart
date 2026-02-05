@@ -24,4 +24,20 @@ class GlucoseEntry {
       analysis: analysis ?? this.analysis,
     );
   }
+
+  factory GlucoseEntry.fromJson(Map<String, dynamic> json) {
+    return GlucoseEntry(
+      value: (json['value'] as num).toDouble(),
+      timestamp: DateTime.parse(json['timestamp']),
+      note: json['note'],
+      // analysis n'est pas toujours renvoyé par l'API history, on gère
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'value': value,
+    'timestamp': timestamp.toIso8601String(),
+    'note': note,
+    'analysis': analysis,
+  };
 }

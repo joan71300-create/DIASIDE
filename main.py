@@ -63,11 +63,7 @@ async def correlation_middleware(request: Request, call_next):
 
 # Configuration CORS pour Flutter
 origins = [
-    "http://localhost",
-    "http://localhost:8080",
-    "http://localhost:3000",
-    "http://127.0.0.1:8000",
-    "http://10.0.2.2:8000", # Android Emulator
+    "*"
 ]
 
 app.add_middleware(

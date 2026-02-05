@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/glucose/glucose_screen.dart';
-import '../../features/meals/screens/meal_entry_screen.dart';
+import '../../features/meals/screens/meal_capture_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/coach/screens/coach_screen.dart';
 
@@ -15,12 +15,12 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    DashboardScreen(),
-    GlucoseInputScreen(),
-    MealEntryScreen(),
-    CoachScreen(),
-    ProfileScreen(),
+  final List<Widget> _screens = [ // Removed const
+    DashboardScreen(), // Wait, constructor is const? Yes, I defined const constructor in DashboardScreen.
+    const GlucoseInputScreen(),
+    const MealCaptureScreen(),
+    const CoachScreen(),
+    const ProfileScreen(),
   ];
 
   @override

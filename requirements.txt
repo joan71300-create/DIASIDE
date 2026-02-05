@@ -12,3 +12,4 @@ python-multipart
 email-validator
 alembic
 pytest-asyncio
+firebase-admin>=6.5.0

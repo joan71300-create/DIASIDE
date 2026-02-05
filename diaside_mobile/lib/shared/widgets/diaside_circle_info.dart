@@ -12,7 +12,7 @@ class DiasideCircleInfo extends StatelessWidget {
     required this.title,
     required this.value,
     this.size = 120,
-    this.color = AppColors.primaryTeal,
+    this.color = AppColors.secondary,
   });
 
   @override
@@ -26,7 +26,7 @@ class DiasideCircleInfo extends StatelessWidget {
         border: Border.all(color: color, width: 8),
         boxShadow: [
           BoxShadow(
-            color: color.withAlpha((0.2 * 255).round()),
+            color: color.withOpacity(0.2),
             blurRadius: 10,
             spreadRadius: 2,
           ),

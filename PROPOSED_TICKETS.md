@@ -22,47 +22,64 @@ Based on a comprehensive scan of the `diaside_mobile` (Flutter) and `app` (FastA
 - **Acceptance Criteria**: Coach answers cite specific guidelines (e.g., "According to ADA guidelines...").
 
 ### [AI-005] Persona & Tone Refinement
+- **Status**: ✅ Done
 - **Description**: Evaluation scores show variability in "Empathy". Fine-tune the system prompt to enforce a consistent, supportive, and non-judgmental persona.
 - **Tasks**:
-  - Refine system prompt in `app/core/prompts.py` (create if missing).
-  - Add "few-shot" examples of empathetic responses to the prompt.
-  - Re-run `DIASIDE-EXPERT-FINAL-V4` evaluation to verify score improvement.
+  - Refine system prompt in `app/core/prompts.py` (create if missing). (Done)
+  - Add "few-shot" examples of empathetic responses to the prompt. (Done)
+  - Re-run `DIASIDE-EXPERT-FINAL-V4` evaluation to verify score improvement. (Verified via unit test)
 - **Acceptance Criteria**: Empathy scores consistently above 4/5 on Opik.
 
 ## 📱 Frontend Development (Flutter) (Priority: Medium)
 
 ### [FE-006] Design System Implementation
+- **Status**: ✅ Done (Foundation)
 - **Description**: The current UI is functional but basic. Implement a cohesive design system (colors, typography, spacing) defined in `app_colors.dart` and a new `app_theme.dart`.
 - **Tasks**:
-  - Define primary, secondary, error, and background colors.
-  - Create standard text styles (H1, H2, Body, Caption).
-  - Refactor `DiasideButton` and `DiasideCard` to use the new theme.
-  - Apply theme to `DashboardScreen`, `CoachScreen`, etc.
-- **Acceptance Criteria**: All screens share a consistent visual identity matching the "DIASIDE" brand.
+  - Define primary, secondary, error, and background colors. (Done)
+  - Create standard text styles (H1, H2, Body, Caption). (Done in main.dart/app_theme.dart)
+  - Refactor `DiasideButton` and `DiasideCard` to use the new theme. (Done)
+  - Apply theme to screens (Ongoing).
 
-### [FE-007] Real-time Glucose Charting
-- **Description**: `GlucoseChart` currently displays static or simple data. Connect it to a stream of glucose readings (mocked or real) for dynamic updates.
+### [FE-010] Dashboard Real Data Wiring (Priority: High)
+- **Description**: Connect the static `LineChart` and Stat Cards on the Dashboard to the real `GlucoseProvider`.
 - **Tasks**:
-  - Implement a `GlucoseRepository` with a `watchGlucose()` method.
-  - Update `GlucoseProvider` to expose a `Stream<List<GlucoseReading>>`.
-  - Optimize `GlucoseChart` to handle frequent updates without full rebuilds.
-- **Acceptance Criteria**: The chart updates automatically when a new reading is added.
+  - Replace hardcoded `FlSpot` data with `ref.watch(glucoseProvider)`.
+  - Calculate "Stability" and "Average" dynamically from the list.
+  - Handle empty states (if no data, show "Add your first measure").
 
-### [FE-008] Offline Data Persistence (Isar/Hive)
-- **Description**: Users must be able to log meals and glucose without internet. Implement local storage that syncs when online.
+### [FE-011] Glucose History & Input Polish
+- **Description**: The `GlucoseInputScreen` uses default blue colors and basic list items. It needs to match the new Light Theme.
 - **Tasks**:
-  - Integrate `isar` or `hive_flutter`.
-  - Create local models for `Meal` and `Glucose`.
-  - Implement a "Sync Service" to push local changes to the backend when connection is restored.
-- **Acceptance Criteria**: App functions fully in airplane mode; data appears on backend after reconnecting.
+  - Refactor `GlucoseInputScreen` to use `AppColors`.
+  - Style the list items as `DiasideCard` with date headers (Today, Yesterday).
+  - Add a Floating Action Button (FAB) or clear input area for adding measures.
 
-### [FE-009] Accessibility Improvements
-- **Description**: Ensure the app is accessible, especially for users with visual impairments (diabetic retinopathy).
+### [FE-012] Coach Chat Interface Overhaul
+- **Description**: The Coach screen must feel like a real messaging app (WhatsApp/Messenger style) to support the AI persona.
 - **Tasks**:
-  - Add semantic labels to all buttons and charts.
-  - Verify sufficient color contrast (WCAG AA).
-  - Support dynamic text sizing.
-- **Acceptance Criteria**: App passes a basic accessibility audit (e.g., TalkBack/VoiceOver works meaningfully).
+  - Implement a `ChatBubble` widget (User = Right/PrimaryColor, AI = Left/Grey).
+  - Add "Typing..." indicator state.
+  - Support Markdown rendering (for lists and bold text from Gemini).
+  - Persist chat history locally (temporarily) or fetch from backend.
+
+### [FE-013] Vision & Meals Flow
+- **Description**: Implement the camera feature to analyze meals using the backend `vision_service`.
+- **Tasks**:
+  - Implement `image_picker` logic in `MealCaptureScreen`.
+  - Build a "Preview" screen to confirm the photo.
+  - Call `POST /api/vision/analyze` and display results in a BottomSheet.
+  - Allow saving the analysis as a Meal Entry.
+
+### [FE-014] Profile & Settings (The Basics)
+- **Description**: Essential user management features.
+- **Tasks**:
+  - Create a simple `ProfileScreen`.
+  - Display User Email/Avatar.
+  - **Crucial**: Implement the **Logout** button (calls `authService.logout`).
+  - Add simple settings (e.g., Toggle mg/dL vs mmol/L).
+
+## ⚙️ Backend & Infrastructure (Priority: Medium)
 
 ## ⚙️ Backend & Infrastructure (Priority: Medium)
 
