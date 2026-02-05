@@ -1,0 +1,7 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\joan7\\OneDrive\\Bureau\\DIASIDE']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [28564] using WatchFiles
+INFO:     Started server process [36348]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+OPIK: Started logging traces to the "DIASIDE" project at https://www.comet.com/opik/api/v1/session/redirect/projects/?trace_id=019c2ce4-0797-7dce-abb1-b777ddc0fb1d&path=aHR0cHM6Ly93d3cuY29tZXQuY29tL29waWsvYXBpLw==.

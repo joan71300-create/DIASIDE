@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1067747995927",
+    "project_id": "diaside",
+    "storage_bucket": "diaside.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1067747995927:android:916550a022b7b135284752",
+        "android_client_info": {
+          "package_name": "com.example.diaside_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEKMhqeVtgt4fHV-WDjjVzMYqmiXvdqpc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,21 @@
+{"level": "INFO", "message": "1 change detected", "logger": "watchfiles.main", "timestamp": "2026-02-05 09:19:07,404", "request_id": null}
+{"level": "INFO", "message": "1 change detected", "logger": "watchfiles.main", "timestamp": "2026-02-05 09:19:14,314", "request_id": null}
+{"level": "INFO", "message": "1 change detected", "logger": "watchfiles.main", "timestamp": "2026-02-05 09:19:15,332", "request_id": null}
+{"level": "INFO", "message": "1 change detected", "logger": "watchfiles.main", "timestamp": "2026-02-05 09:19:15,988", "request_id": null}
+{"level": "INFO", "message": "2 changes detected", "logger": "watchfiles.main", "timestamp": "2026-02-05 09:19:21,624", "request_id": null}
+{"level": "INFO", "message": "1 change detected", "logger": "watchfiles.main", "timestamp": "2026-02-05 09:19:22,083", "request_id": null}
+{"level": "INFO", "message": "1 change detected", "logger": "watchfiles.main", "timestamp": "2026-02-05 09:19:22,451", "request_id": null}
+{"level": "INFO", "message": "1 change detected", "logger": "watchfiles.main", "timestamp": "2026-02-05 09:19:27,440", "request_id": null}
+{"level": "INFO", "message": "1 change detected", "logger": "watchfiles.main", "timestamp": "2026-02-05 09:19:27,949", "request_id": null}
+{"level": "INFO", "message": "D\u00e9but requ\u00eate: POST http://10.0.2.2:8000/auth/firebase-login", "logger": "root", "timestamp": "2026-02-05 09:21:07,599", "request_id": "4ad815fc-2b3b-417b-8e3a-40384eb3137b"}
+{"level": "INFO", "message": "Fin requ\u00eate: status=200 duration=0.5614s", "logger": "root", "timestamp": "2026-02-05 09:21:08,160", "request_id": "4ad815fc-2b3b-417b-8e3a-40384eb3137b"}
+INFO:     127.0.0.1:61176 - "POST /auth/firebase-login HTTP/1.1" 200 OK
+{"level": "INFO", "message": "D\u00e9but requ\u00eate: GET http://10.0.2.2:8000/api/stats/hba1c", "logger": "root", "timestamp": "2026-02-05 09:21:08,946", "request_id": "57325372-749d-4457-a450-511f136115a7"}
+{"level": "INFO", "message": "D\u00e9but requ\u00eate: GET http://10.0.2.2:8000/api/history?limit=200", "logger": "root", "timestamp": "2026-02-05 09:21:08,950", "request_id": "54750b59-6c66-40e3-95ab-7e5951bda15d"}
+{"level": "INFO", "message": "Fin requ\u00eate: status=200 duration=0.0180s", "logger": "root", "timestamp": "2026-02-05 09:21:08,968", "request_id": "54750b59-6c66-40e3-95ab-7e5951bda15d"}
+INFO:     127.0.0.1:61185 - "GET /api/history?limit=200 HTTP/1.1" 200 OK
+{"level": "INFO", "message": "D\u00e9but requ\u00eate: GET http://10.0.2.2:8000/api/stats/hba1c", "logger": "root", "timestamp": "2026-02-05 09:21:08,978", "request_id": "acf19454-99dd-4e82-997c-0173ab5e3695"}
+{"level": "INFO", "message": "Fin requ\u00eate: status=200 duration=0.0820s", "logger": "root", "timestamp": "2026-02-05 09:21:09,028", "request_id": "57325372-749d-4457-a450-511f136115a7"}
+INFO:     127.0.0.1:61184 - "GET /api/stats/hba1c HTTP/1.1" 200 OK
+{"level": "INFO", "message": "Fin requ\u00eate: status=200 duration=0.0508s", "logger": "root", "timestamp": "2026-02-05 09:21:09,029", "request_id": "acf19454-99dd-4e82-997c-0173ab5e3695"}
+INFO:     127.0.0.1:61186 - "GET /api/stats/hba1c HTTP/1.1" 200 OK
