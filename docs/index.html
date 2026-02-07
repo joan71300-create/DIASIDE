@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIASIDE - Documentation</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>DIASIDE</h1>
+            <p>L'Assistant Intelligent pour l'Équilibre Diabétique</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- 1. La Genèse / Le Problème -->
+        <section id="motivation">
+            <h2>🎯 Pourquoi DIASIDE ?</h2>
+            <div class="highlight">
+                <strong>Le constat d'un diabétique :</strong> "Au quotidien, je gère des hypo et des hyperglycémies. C'est une bataille minute par minute. Mais mon endocrinologue me juge sur mon <strong>HbA1c</strong> (moyenne de 3 mois). Le problème, c'est que je ne 'vois' pas cette moyenne au jour le jour. Je navigue à vue sans savoir si mes efforts d'aujourd'hui paieront dans 3 mois."
+            </div>
+            <p>
+                La difficulté majeure n'est pas seulement de corriger une glycémie à l'instant T, mais de garder le cap sur un objectif long terme invisible. <strong>DIASIDE a été créé pour rendre cet objectif visible.</strong>
+            </p>
+        </section>
+
+        <!-- 2. La Solution -->
+        <section id="solution">
+            <h2>💡 La Solution</h2>
+            <p>
+                DIASIDE comble le fossé entre la gestion quotidienne et l'objectif médical trimestriel. L'application projette votre stabilité actuelle vers l'avenir pour vous dire : <em>"Si tu continues comme ça aujourd'hui, voici où tu seras dans 3 mois."</em>
+            </p>
+        </section>
+
+        <!-- 3. Fonctionnement -->
+        <section id="features">
+            <h2>⚙️ Fonctionnement & Moyens Mis en Œuvre</h2>
+            
+            <div class="features">
+                <div class="feature-card">
+                    <i class="fas fa-chart-line feature-icon"></i>
+                    <h3>Tableau de Bord Prédictif</h3>
+                    <p>Au lieu d'afficher juste votre glycémie actuelle, le dashboard montre votre <strong>HbA1c Estimée</strong> en temps réel et la compare à votre <strong>Objectif 2026</strong>. Un code couleur simple (Vert/Orange/Rouge) vous indique si vous êtes sur la bonne trajectoire.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fas fa-robot feature-icon"></i>
+                    <h3>Coach IA Holistique</h3>
+                    <p>Contrairement aux calculateurs de bolus classiques, le Coach DIASIDE (propulsé par Gemini 2.5) analyse le contexte global : <strong>Sommeil, Stress, Activité physique et Repas</strong>. Il ne vous gronde pas, il vous conseille pour ajuster votre style de vie.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fas fa-sync feature-icon"></i>
+                    <h3>Import EasyView</h3>
+                    <p>Fini la saisie manuelle. DIASIDE se connecte directement aux serveurs Medtrum (EasyView) pour récupérer vos données de capteur en continu, garantissant une analyse basée sur des données réelles et complètes.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Sécurité -->
+        <section id="security">
+            <h2>🔒 Sécurité & Anonymat</h2>
+            <p>
+                La confiance est primordiale pour des données de santé. DIASIDE intègre des garde-fous stricts :
+            </p>
+            <ul>
+                <li><strong>Anonymisation des Données :</strong> Avant d'être envoyées au moteur d'intelligence artificielle, toutes les données identifiables (Nom, Email, IP) sont supprimées. L'IA ne voit qu'un "Profil Biologique" (ex: "Homme, 45 ans, Type 1") sans jamais savoir qui vous êtes.</li>
+                <li><strong>Garde-fous Médicaux (Guardrails) :</strong> Le système est bridé pour ne jamais donner de conseils de dosage médical (insuline). Il se limite strictement aux conseils d'hygiène de vie et renvoie vers un médecin en cas de doute.</li>
+                <li><strong>Hébergement Sécurisé :</strong> Les données sensibles sont chiffrées en base de données.</li>
+            </ul>
+        </section>
+
+        <footer>
+            <p>DIASIDE - Projet Open Source | 2026</p>
+        </footer>
+    </main>
+</body>
+</html>
