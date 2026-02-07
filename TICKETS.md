@@ -15,6 +15,16 @@ Plan d'action pour la mise en production (Lundi Matin).
   - Mise à jour du `AIService` pour inclure l'objectif dans le prompt contextuel de Gemini.
   - *Impact* : Le coach peut désormais dire "Pour atteindre ton objectif de 6.5% d'ici décembre...".
 
+- [x] **GIT-01** : Nettoyage GitHub
+  - Fusion de toutes les modifications sur la branche `main`.
+  - Suppression des branches de développement obsolètes.
+  - *État* : Dépôt propre et à jour.
+
+- [x] **DOC-02** : Site Web de Documentation
+  - Création d'un site "One-Page" dans `docs/`.
+  - Contenu : Genèse du projet, Solution, Fonctionnement Coach/Dashboard, Sécurité.
+  - Prêt pour GitHub Pages.
+
 ## 🚀 To Do (High Priority - For Monday)
 
 ### Backend & Data
