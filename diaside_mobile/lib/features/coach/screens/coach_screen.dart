@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:image_picker/image_picker.dart'; // Added
-import 'dart:convert'; // Added for Base64
-// Added
-// Added
-import '../models/coach_models.dart';
+import 'package:image_picker/image_picker.dart'; 
+import 'dart:convert'; 
+
+// Assume these models and services are imported and available in scope:
+import '../services/coach_service.dart'; 
+import '../models/coach_models.dart'; 
 import '../providers/coach_provider.dart';
-import '../services/coach_service.dart';
 import '../../../core/theme/app_colors.dart';
 
 class CoachScreen extends ConsumerStatefulWidget {
@@ -45,24 +45,85 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       setState(() {
         _selectedImageBase64 = base64String;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Image sélectionnée ! Écrivez votre question.")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Image sélectionnée ! Écrivez votre question ou envoyez-la.")));
+      }
     }
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty && _selectedImageBase64 == null) return;
-    
-    ref.read(coachProvider.notifier).sendMessage(
-      _messageController.text, 
-      _snapshot,
-      imageBase64: _selectedImageBase64
+  // New private async function to handle food image analysis
+  Future<void> _analyzeFoodImage(WidgetRef ref) async {
+    if (_selectedImageBase64 == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Veuillez sélectionner une image d'abord.")),
+        );
+      }
+      return;
+    }
+
+    // Construct the request payload
+    final requestPayload = FoodRecognitionRequest(
+      image_base64: _selectedImageBase64!,
+      current_glucose: _snapshot.labData.fastingGlucose, // Using fasting glucose as placeholder for current_glucose
+      trend: 'stable', // Defaulting trend to 'stable'
     );
-    
-    _messageController.clear();
-    setState(() {
-      _selectedImageBase64 = null; // Reset image after send
-    });
-    _scrollToBottom();
+
+    try {
+      // Make the API call using the coachService
+      final response = await coachService.analyzeFoodImage(requestPayload.toJson());
+
+      // Display results
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Analyse: ${response.carbs}g glucides. Conseil: ${response.advice}"),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+
+    } catch (e) {
+      // Display error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erreur lors de l'analyse: ${e.toString()}"),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      // Cleanup after the operation
+      _messageController.clear();
+      if (mounted) {
+        setState(() {
+          _selectedImageBase64 = null;
+        });
+      }
+      _scrollToBottom();
+    }
+  }
+
+  // Modified _sendMessage function
+  void _sendMessage() {
+    if (_messageController.text.trim().isEmpty && _selectedImageBase64 == null) {
+      return; // Do nothing if no message and no image
+    }
+
+    if (_selectedImageBase64 != null) {
+      // Prioritize image analysis if an image is selected
+      _analyzeFoodImage(ref); // Call the new function
+    } else {
+      // Original logic for text-only messages
+      ref.read(coachProvider.notifier).sendMessage(
+        _messageController.text, 
+        _snapshot,
+        // image_base64 is null here
+      );
+      _messageController.clear();
+      _scrollToBottom();
+    }
   }
 
   void _scrollToBottom() {
@@ -102,12 +163,16 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                     caloriesBurned: steps * 0.04, 
                     distanceKm: steps * 0.0007
                   ));
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Activité enregistrée ! Le coach est au courant.")));
-                  // Trigger coach update?
-                  ref.read(coachProvider.notifier).sendMessage("Je viens de faire $steps pas. Qu'en penses-tu ?", _snapshot);
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Activité enregistrée ! Le coach est au courant.")));
+                    // Trigger coach update?
+                    ref.read(coachProvider.notifier).sendMessage("Je viens de faire $steps pas. Qu'en penses-tu ?", _snapshot);
+                  }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erreur: $e")));
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erreur: $e")));
+                  }
                 }
               }
             }, 
@@ -143,11 +208,15 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                     name: nameController.text,
                     carbs: double.tryParse(carbsController.text)
                   ));
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Repas enregistré !")));
-                   ref.read(coachProvider.notifier).sendMessage("Je viens de manger : ${nameController.text}. Analyse ?", _snapshot);
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Repas enregistré !")));
+                    ref.read(coachProvider.notifier).sendMessage("Je viens de manger : ${nameController.text}. Analyse ?", _snapshot);
+                  }
                 } catch (e) {
-                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erreur: $e")));
+                   if (mounted) {
+                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erreur: $e")));
+                   }
                 }
               }
             }, 
@@ -243,7 +312,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.health_and_safety, size: 64, color: AppColors.primary.withOpacity(0.3)),
+          Icon(Icons.health_and_safety, size: 64, color: AppColors.primary.withValues(alpha: 0.3)),
           const SizedBox(height: 16),
           Text(
             "Bonjour ! Je suis votre Coach Santé.",
@@ -276,7 +345,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
             bottomRight: Radius.circular(isUser ? 0 : 20),
           ),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
           ],
         ),
         child: isUser 
@@ -304,7 +373,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary.withOpacity(0.5))),
+            SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary.withValues(alpha: 0.5))),
             const SizedBox(width: 8),
             Text("Analyse en cours...", style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textTertiary)),
           ],
@@ -346,7 +415,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.background,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -4))],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -387,7 +456,9 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
               Expanded(
                 child: TextField(
                   controller: _messageController,
-                  onSubmitted: (_) => _sendMessage(),
+                  // Temporarily remove onSubmitted call to _sendMessage to avoid double calls.
+                  // It will be handled by _analyzeFoodImage or the original sendMessage logic.
+                  onSubmitted: (_) => _sendMessage(), 
                   decoration: InputDecoration(
                     hintText: "Écrivez ici...",
                     hintStyle: GoogleFonts.poppins(color: AppColors.textTertiary),
@@ -398,6 +469,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
               ),
               IconButton(
                 icon: Icon(Icons.send, color: isLoading ? AppColors.textTertiary : AppColors.primary),
+                // Use _sendMessage for both text and image cases. The logic inside _sendMessage will decide.
                 onPressed: isLoading ? null : _sendMessage,
               ),
             ],

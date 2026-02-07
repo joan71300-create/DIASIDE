@@ -94,10 +94,10 @@ def seed():
             ]
         )
         db.commit()
-        print("✅ Seeding Complete!")
+        print("Seeding Complete!") # Removed emoji
         
     except Exception as e:
-        print(f"❌ Error seeding data: {e}")
+        print(f"Error seeding data: {e}") # Removed emoji
         db.rollback()
     finally:
         db.close()

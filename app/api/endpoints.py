@@ -6,12 +6,15 @@ from app.models.database import get_db
 from app.services.ai_service import ai_service
 from app.services.nightscout_service import nightscout_service
 from app.services.medtrum_service import medtrum_service # Added import
+from app.services.vision_service import vision_service # Import vision_service
 from app.api.auth import get_current_user
 from app.core.logger import request_id_context
 from app.core.stability_engine import analyze_stability
+from app.core.config import settings
 from datetime import datetime, timedelta
 from sqlalchemy import func
 import uuid
+import base64 # Import base64
 
 router = APIRouter()
 
@@ -107,6 +110,11 @@ async def get_coach_advice(
     
     if db_meals:
         snapshot.recent_meals = [schemas.Meal.model_validate(m) for m in db_meals]
+        
+    # Inject Goals from Questionnaire (Fix for Context Blindness)
+    if current_user.questionnaire:
+        snapshot.target_hba1c = current_user.questionnaire.target_hba1c
+        snapshot.target_hba1c_date = current_user.questionnaire.target_hba1c_date
     # ---------------------------------------------------
 
     # Generate holistic context string
@@ -303,46 +311,88 @@ def receive_cgm_ping(
     db.refresh(db_entry)
     return db_entry
 
-@router.post("/simulation/start")
-@track(name="api_simulation_start")
-def start_simulation(
-    target_avg_glucose: int = 160, # ~7.2% HbA1c
-    days: int = 90,
+# --- NEW ENDPOINT FOR FOOD RECOGNITION ---
+@router.post("/vision/food", response_model=schemas.FoodRecognitionResponse)
+@track(name="api_food_recognition")
+async def analyze_food_image(
+    request: schemas.FoodRecognitionRequest,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db) # db is included for consistency, though not directly used in analyze_meal
 ):
     """
-    Génère des données fictives sur X jours pour simuler un historique.
-    Utile pour tester le calcul HbA1c.
+    Analyzes an image of food to estimate nutritional information (carbs) and provide advice.
     """
-    import random
-    
-    # Nettoyage des anciennes données simulées (optionnel)
-    # db.query(models.GlucoseEntry).filter(models.GlucoseEntry.user_id == current_user.id).delete()
-    
-    start_date = datetime.utcnow() - timedelta(days=days)
-    entries = []
-    
-    for day in range(days):
-        day_date = start_date + timedelta(days=day)
-        # 4 mesures par jour (Matin, Midi, Soir, Nuit)
-        for hour in [8, 13, 19, 23]:
-            # Simulation : Onde sinusoïdale + Bruit aléatoire
-            base_value = target_avg_glucose + random.randint(-40, 40)
-            
-            # Post-prandial spikes (Midi et Soir)
-            if hour in [13, 19]:
-                base_value += random.randint(20, 60)
+    try:
+        # Decode base64 image
+        image_bytes = base64.b64decode(request.image_base64)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid base64 image: {e}")
+
+    try:
+        # Call the VisionService to analyze the meal
+        # Pass current_glucose and trend from the request
+        analysis_result = await vision_service.analyze_meal(
+            image_bytes=image_bytes,
+            current_glucose=request.current_glucose,
+            trend=request.trend
+        )
+
+        # Format the result into the response model
+        return schemas.FoodRecognitionResponse(
+            carbs=float(analysis_result.get("carbs", 0.0)),
+            advice=analysis_result.get("advice", "No advice available.")
+        )
+
+    except Exception as e:
+        # Catch any other potential errors during analysis
+        # Log the error for debugging
+        print(f"Error during food analysis: {e}") # Consider a more robust logging mechanism
+        raise HTTPException(status_code=500, detail="Error processing food image analysis.")
+
+# --- END NEW ENDPOINT ---
+
+
+if settings.ENABLE_SIMULATION_ENDPOINT:
+    @router.post("/simulation/start")
+    @track(name="api_simulation_start")
+    def start_simulation(
+        target_avg_glucose: int = 160, # ~7.2% HbA1c
+        days: int = 90,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+    ):
+        """
+        Génère des données fictives sur X jours pour simuler un historique.
+        Utile pour tester le calcul HbA1c.
+        """
+        import random
+        
+        # Nettoyage des anciennes données simulées (optionnel)
+        # db.query(models.GlucoseEntry).filter(models.GlucoseEntry.user_id == current_user.id).delete()
+        
+        start_date = datetime.utcnow() - timedelta(days=days)
+        entries = []
+        
+        for day in range(days):
+            day_date = start_date + timedelta(days=day)
+            # 4 mesures par jour (Matin, Midi, Soir, Nuit)
+            for hour in [8, 13, 19, 23]:
+                # Simulation : Onde sinusoïdale + Bruit aléatoire
+                base_value = target_avg_glucose + random.randint(-40, 40)
                 
-            entry = models.GlucoseEntry(
-                user_id=current_user.id,
-                value=float(base_value),
-                timestamp=day_date.replace(hour=hour, minute=random.randint(0, 59)),
-                note="Simulation"
-            )
-            entries.append(entry)
-    
-    db.add_all(entries)
-    db.commit()
-    
-    return {"message": f"Simulation terminée : {len(entries)} points générés.", "avg_target": target_avg_glucose}
+                # Post-prandial spikes (Midi et Soir)
+                if hour in [13, 19]:
+                    base_value += random.randint(20, 60)
+                    
+                entry = models.GlucoseEntry(
+                    user_id=current_user.id,
+                    value=float(base_value),
+                    timestamp=day_date.replace(hour=hour, minute=random.randint(0, 59)),
+                    note="Simulation"
+                )
+                entries.append(entry)
+        
+        db.add_all(entries)
+        db.commit()
+        
+        return {"message": f"Simulation terminée : {len(entries)} points générés.", "avg_target": target_avg_glucose}

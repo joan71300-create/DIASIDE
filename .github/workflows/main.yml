@@ -1,0 +1,76 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11' # Specify your desired Python version
+
+    - name: Install backend dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run backend tests
+      run: |
+        pytest
+
+  build-frontend-android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: diaside_mobile
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0' # Specify your Flutter version, or use 'stable'
+
+    - name: Get Flutter dependencies
+      run: flutter pub get
+
+    - name: Build Android APK
+      run: flutter build apk --release
+
+  build-frontend-ios:
+    runs-on: macos-latest # iOS builds require macOS
+    defaults:
+      run:
+        working-directory: diaside_mobile
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0' # Specify your Flutter version, or use 'stable'
+
+    - name: Get Flutter dependencies
+      run: flutter pub get
+
+    - name: Build iOS IPA
+      run: flutter build ipa --release
+      # For iOS release builds, you might need to configure code signing.
+      # For a hackathon prototype, this might be skipped or simplified if not strictly required for demonstration.
+      # If needed, add steps for signing:
+      # - name: Configure iOS signing
+      #   run: |
+      #     echo "Configuring signing..."
+      #     # Add steps to import certificates and provisioning profiles as GitHub secrets
+      #     # Example: https://docs.github.com/en/actions/deployment/deploying-to-github-pages/automating-deployments-with-github-pages#configuring-a-build-and-deployment-workflow

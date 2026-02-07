@@ -1,28 +1,22 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb; // Add this import
+// Add this import
 
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   
-  // Correction de l'URL pour le Web
-  String get _baseUrl {
-    if (kIsWeb) return 'http://127.0.0.1:8000'; // Localhost pour le Web
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000'; // Émulateur Android
-    return 'http://127.0.0.1:8000'; // iOS / Desktop
-  }
-
   late final Dio _dio;
   final _storage = const FlutterSecureStorage();
 
   AuthService() {
+    final baseUrl = dotenv.env['BASE_URL'] ?? 'http://127.0.0.1:8000';
     _dio = Dio(
       BaseOptions(
-        baseUrl: _baseUrl,
+        baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 60), // Increased from 10s
         receiveTimeout: const Duration(seconds: 300), // Increased to 5min for heavy sync
       ),

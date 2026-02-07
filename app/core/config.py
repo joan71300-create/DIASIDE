@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./diaside.db"
 
+    # Simulation
+    ENABLE_SIMULATION_ENDPOINT: bool = False
+    
+    # Firebase
+    FIREBASE_CREDENTIALS_PATH: str = "serviceAccountKey.json"
+
     model_config = ConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

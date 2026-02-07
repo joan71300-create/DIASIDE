@@ -3,6 +3,7 @@ from google.genai import types # Add this import
 import os
 import asyncio
 import json
+import math
 from opik.integrations.genai import track_genai
 from opik import track
 from app.core.config import settings
@@ -139,15 +140,75 @@ class AIService:
                 return {"advice": "Le service est temporairement surchargé. Veuillez réessayer.", "actions": []}
             return {"advice": f"Erreur IA: {str(e)}", "actions": []}
 
+    def anonymize_health_snapshot(self, snapshot: schemas.UserHealthSnapshot) -> schemas.UserHealthSnapshot:
+        """
+        Anonymizes a UserHealthSnapshot to protect user privacy.
+        """
+        anon_snapshot = snapshot.copy(deep=True)
+
+        # Anonymize age
+        age = anon_snapshot.age
+        if age < 18:
+            anon_snapshot.age = "under 18"
+        elif age < 25:
+            anon_snapshot.age = "18-24"
+        elif age < 35:
+            anon_snapshot.age = "25-34"
+        elif age < 45:
+            anon_snapshot.age = "35-44"
+        elif age < 55:
+            anon_snapshot.age = "45-54"
+        elif age < 65:
+            anon_snapshot.age = "55-64"
+        else:
+            anon_snapshot.age = "65+"
+
+        # Anonymize weight and height using BMI
+        try:
+            height_m = anon_snapshot.height / 100
+            bmi = anon_snapshot.weight / (height_m * height_m)
+            if bmi < 18.5:
+                bmi_category = "underweight"
+            elif bmi < 25:
+                bmi_category = "normal weight"
+            elif bmi < 30:
+                bmi_category = "overweight"
+            else:
+                bmi_category = "obese"
+            anon_snapshot.weight = bmi_category
+            anon_snapshot.height = None
+        except (ZeroDivisionError, TypeError):
+            anon_snapshot.weight = "unknown"
+            anon_snapshot.height = None
+            
+
+        # Round biometric values
+        anon_snapshot.lab_data.hba1c = round(anon_snapshot.lab_data.hba1c, 1)
+        anon_snapshot.lab_data.fasting_glucose = int(round(anon_snapshot.lab_data.fasting_glucose / 10) * 10)
+        
+        for activity in anon_snapshot.recent_activity:
+            activity.steps = int(round(activity.steps / 100) * 100)
+            activity.calories_burned = int(round(activity.calories_burned / 10) * 10)
+            activity.distance_km = round(activity.distance_km, 1)
+
+        for meal in anon_snapshot.recent_meals:
+            meal.carbs = int(round(meal.carbs / 5) * 5) if meal.carbs else None
+            meal.calories = int(round(meal.calories / 50) * 50) if meal.calories else None
+
+
+        return anon_snapshot
+
     def format_health_context(self, snapshot: schemas.UserHealthSnapshot) -> str:
         """
         Transforme un UserHealthSnapshot en contexte textuel pour le prompt Gemini.
         Traceable via Opik car utilisé dans le flux IA.
         """
+        anon_snapshot = self.anonymize_health_snapshot(snapshot)
+
         # Format Activity History
         activity_context = "Pas d'activité récente enregistrée."
-        if snapshot.recent_activity:
-            last_stats = snapshot.recent_activity[-1] # Most recent
+        if anon_snapshot.recent_activity:
+            last_stats = anon_snapshot.recent_activity[-1] # Most recent
             activity_context = (
                 f"Dernière activité ({last_stats.date.strftime('%Y-%m-%d')}): {last_stats.steps} pas, "
                 f"{last_stats.calories_burned} kcal brûlées."
@@ -155,18 +216,32 @@ class AIService:
 
         # Format Meal History
         meal_context = "Pas de repas récents enregistrés."
-        if snapshot.recent_meals:
-            recent_meals_str = [f"- {m.timestamp.strftime('%H:%M')}: {m.name} ({m.carbs}g glucides)" for m in snapshot.recent_meals[-3:]]
+        if anon_snapshot.recent_meals:
+            recent_meals_str = [f"- {m.timestamp.strftime('%H:%M')}: {m.name} ({m.carbs}g glucides)" for m in anon_snapshot.recent_meals[-3:]]
             meal_context = "Derniers repas :\n" + "\n".join(recent_meals_str)
+
+        # Build the anonymized context string
+        biometrics_str = f"{anon_snapshot.weight}"
+        if anon_snapshot.height:
+            biometrics_str += f", {anon_snapshot.height}cm"
+
+        # Format Goals
+        goal_context = ""
+        if anon_snapshot.target_hba1c:
+            goal_context = f"- OBJECTIF: Atteindre HbA1c {anon_snapshot.target_hba1c}%"
+            if anon_snapshot.target_hba1c_date:
+                goal_context += f" d'ici le {anon_snapshot.target_hba1c_date.strftime('%d/%m/%Y')}"
+            goal_context += ".\n"
 
         return (
             f"PROFIL PATIENT :\n"
-            f"- Info: {snapshot.age} ans, {snapshot.lifestyle.gender}, {snapshot.diabetes_type}\n"
-            f"- Biométrie: {snapshot.weight}kg, {snapshot.height}cm\n"
-            f"- Objectif Pas: {snapshot.lifestyle.daily_step_goal}/jour\n"
-            f"- Activité: Niveau {snapshot.lifestyle.activity_level.value}. {activity_context}\n"
-            f"- Nutrition: Régime {snapshot.lifestyle.diet_type}. {meal_context}\n"
-            f"- Labo: HbA1c {snapshot.lab_data.hba1c}%, Glycémie à jeun {snapshot.lab_data.fasting_glucose}mg/dL.\n"
+            f"- Info: {anon_snapshot.age} ans, {anon_snapshot.lifestyle.gender}, {anon_snapshot.diabetes_type}\n"
+            f"- Biométrie: {biometrics_str}\n"
+            f"{goal_context}"
+            f"- Objectif Pas: {anon_snapshot.lifestyle.daily_step_goal}/jour\n"
+            f"- Activité: Niveau {anon_snapshot.lifestyle.activity_level.value}. {activity_context}\n"
+            f"- Nutrition: Régime {anon_snapshot.lifestyle.diet_type}. {meal_context}\n"
+            f"- Labo: HbA1c {anon_snapshot.lab_data.hba1c}%, Glycémie à jeun {anon_snapshot.lab_data.fasting_glucose}mg/dL.\n"
         )
 
 ai_service = AIService()

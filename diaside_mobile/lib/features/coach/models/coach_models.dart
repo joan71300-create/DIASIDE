@@ -191,3 +191,38 @@ class ChatRequest {
     'image_base64': imageBase64,
   };
 }
+
+class FoodRecognitionRequest {
+  final String image_base64;
+  final int current_glucose;
+  final String trend;
+
+  FoodRecognitionRequest({
+    required this.image_base64,
+    required this.current_glucose,
+    this.trend = 'stable',
+  });
+
+  Map<String, dynamic> toJson() => {
+    'image_base64': image_base64,
+    'current_glucose': current_glucose,
+    'trend': trend,
+  };
+}
+
+class FoodRecognitionResponse {
+  final int carbs;
+  final String advice;
+
+  FoodRecognitionResponse({
+    required this.carbs,
+    required this.advice,
+  });
+
+  factory FoodRecognitionResponse.fromJson(Map<String, dynamic> json) {
+    return FoodRecognitionResponse(
+      carbs: json['carbs'] ?? 0,
+      advice: json['advice'] ?? '',
+    );
+  }
+}

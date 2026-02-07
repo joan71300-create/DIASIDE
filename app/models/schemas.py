@@ -150,6 +150,10 @@ class UserHealthSnapshot(BaseModel):
     lifestyle: LifestyleProfile
     recent_activity: List[DailyStats] = []
     recent_meals: List[Meal] = []
+    
+    # Goals (Added for Coach Context)
+    target_hba1c: Optional[float] = Field(None, description="User's target HbA1c goal")
+    target_hba1c_date: Optional[datetime] = Field(None, description="Date by which the user wants to achieve the target")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -178,3 +182,13 @@ class MedtrumConnectRequest(BaseModel):
     password: str
     region: str = "fr" # ou "com"
 
+# For Food Recognition Request
+class FoodRecognitionRequest(BaseModel):
+    image_base64: str = Field(..., description="Base64 encoded image of the food")
+    current_glucose: float = Field(..., description="Current glucose level in mg/dL")
+    trend: str = Field(..., description="Glucose trend (e.g., 'stable', 'rising', 'falling')")
+    
+# For Food Recognition Response
+class FoodRecognitionResponse(BaseModel):
+    carbs: float = Field(..., description="Estimated carbohydrates in grams")
+    advice: str = Field(..., description="AI-generated advice based on the analysis")

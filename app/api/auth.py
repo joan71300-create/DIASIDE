@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from opik import track
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from app.core import security
+from app.core.config import settings # Import settings
 from app.models import models, schemas
 from app.models.database import get_db
 from datetime import timedelta
@@ -15,7 +16,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # Initialisation de Firebase Admin (une seule fois)
 # On cherche le fichier de config dans les variables d'env ou à la racine
-cred_path = "serviceAccountKey.json"
+cred_path = settings.FIREBASE_CREDENTIALS_PATH # Use the path from settings
 if os.path.exists(cred_path) and not firebase_admin._apps:
     cred = credentials.Certificate(cred_path)
     firebase_admin.initialize_app(cred)

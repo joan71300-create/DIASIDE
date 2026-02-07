@@ -84,6 +84,27 @@ class CoachService {
       rethrow;
     }
   }
+
+  Future<FoodRecognitionResponse> analyzeFoodImage(Map<String, dynamic> requestJson) async {
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+      if (token == null) throw Exception("No token found");
+
+      final response = await _dio.post(
+        '/api/vision/food',
+        data: requestJson,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return FoodRecognitionResponse.fromJson(response.data);
+      }
+      throw Exception("Failed to analyze food image");
+    } catch (e) {
+      print('Analyze Food Image Error: $e');
+      rethrow;
+    }
+  }
 }
 
 final coachService = CoachService();
