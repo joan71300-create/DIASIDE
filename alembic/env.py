@@ -8,7 +8,11 @@ from sqlalchemy import pool
 from alembic import context
 
 # Add the project root to the python path
-sys.path.append(os.getcwd())
+# Get the directory of the current file (env.py)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# Get the parent directory (project root) and add it to sys.path
+project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
+sys.path.append(project_root)
 
 # Import the settings and models
 from app.core.config import settings
