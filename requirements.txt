@@ -13,3 +13,4 @@ email-validator
 alembic
 pytest-asyncio
 firebase-admin>=6.5.0
+psycopg2-binary # Added for PostgreSQL database connection
