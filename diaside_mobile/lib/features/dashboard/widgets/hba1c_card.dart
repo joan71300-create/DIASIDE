@@ -8,6 +8,7 @@ class HbA1cCard extends StatelessWidget {
   final double target;
   final double? lastLabResult;
   final DateTime? targetDate;
+  final String? message;
 
   const HbA1cCard({
     super.key,
@@ -15,6 +16,7 @@ class HbA1cCard extends StatelessWidget {
     required this.target,
     this.lastLabResult,
     this.targetDate,
+    this.message,
   });
 
   @override
@@ -99,6 +101,22 @@ class HbA1cCard extends StatelessWidget {
                     Text("À atteindre pour", style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textTertiary)),
                     Text(targetDate != null ? "${targetDate!.day}/${targetDate!.month}/${targetDate!.year}" : "Fin 2026", 
                       style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
+                    
+                    if (message != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                        ),
+                        child: Text(
+                          message!,
+                          style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textPrimary, fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               )

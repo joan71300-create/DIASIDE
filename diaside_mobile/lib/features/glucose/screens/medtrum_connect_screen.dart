@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -5,6 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/diaside_button.dart';
 import '../../glucose/glucose_provider.dart';
+
+// Removed: import 'dart:io';
 
 class MedtrumConnectScreen extends ConsumerStatefulWidget {
   const MedtrumConnectScreen({super.key});
@@ -32,7 +35,12 @@ class _MedtrumConnectScreenState extends ConsumerState<MedtrumConnectScreen> {
       // Appel API Backend
       // Note: L'URL de base est gérée par Dio dans le provider global, mais ici je fais simple
       final dio = Dio();
-      final baseUrl = 'http://10.0.2.2:8000'; // Android Emulator
+      String baseUrl;
+      if (kIsWeb) {
+        baseUrl = 'http://127.0.0.1:8000';
+      } else { // Simplified baseUrl logic to remove Platform.isAndroid
+        baseUrl = 'http://127.0.0.1:8000'; // Default for non-web, including Android
+      }
       
       final response = await dio.post(
         '$baseUrl/api/medtrum/connect',
@@ -48,6 +56,10 @@ class _MedtrumConnectScreenState extends ConsumerState<MedtrumConnectScreen> {
         _status = "Succès ! ${response.data['new_entries']} mesures importées.";
         _isLoading = false;
       });
+
+      // Save credentials for Auto-Sync
+      await storage.write(key: 'medtrum_user', value: _usernameController.text);
+      await storage.write(key: 'medtrum_pass', value: _passwordController.text);
       
       // Refresh Data
       ref.invalidate(glucoseProvider);

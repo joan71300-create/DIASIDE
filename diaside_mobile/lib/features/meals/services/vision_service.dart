@@ -1,6 +1,8 @@
-import 'dart:io';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
+import "package:flutter/foundation.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:dio/dio.dart";
+import "dart:typed_data";
+import "package:flutter_secure_storage/flutter_secure_storage.dart"; // Import FlutterSecureStorage
 
 class FoodAnalysis {
   final String description;
@@ -17,37 +19,57 @@ class FoodAnalysis {
 
   factory FoodAnalysis.fromJson(Map<String, dynamic> json) {
     return FoodAnalysis(
-      description: json['description'] ?? "Repas détecté",
-      carbs: json['carbs'] ?? 0,
-      calories: json['calories'] ?? 0,
-      advice: json['advice'] ?? "",
+      description: json["description"] ?? "Repas détecté",
+      carbs: json["carbs"] ?? 0,
+      calories: json["calories"] ?? 0,
+      advice: json["advice"] ?? "",
     );
   }
 }
 
 class VisionService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://127.0.0.1:8000'));
+  late final Dio _dio;
+  final _storage = const FlutterSecureStorage(); // Initialize storage
 
-  Future<FoodAnalysis> analyzeFood(File imageFile) async {
-    // Simulation d'appel API pour le moment
-    await Future.delayed(const Duration(seconds: 2));
-    
-    // Dans une version réelle, on enverrait le multipart
-    /*
-    String fileName = imageFile.path.split('/').last;
+  VisionService() {
+    String baseUrl;
+    if (kIsWeb) {
+      baseUrl = "http://127.0.0.1:8000";
+    } else if (kIsWeb) {
+      baseUrl = "http://10.0.2.2:8000";
+    } else {
+      baseUrl = "http://127.0.0.1:8000";
+    }
+    _dio = Dio(BaseOptions(baseUrl: baseUrl));
+  }
+
+  Future<FoodAnalysis> analyzeFood(dynamic image, String fileName, double currentGlucose, String glucoseTrend) async {
+    if (image == null) {
+      throw Exception("Image data is null.");
+    }
+
+    final token = await _storage.read(key: "jwt_token"); // Get token
+    if (token == null) {
+      throw Exception("Authentication token not found.");
+    }
+
     FormData formData = FormData.fromMap({
-      "file": await MultipartFile.fromFile(imageFile.path, filename:fileName),
+      "image": kIsWeb // Changed key from "file" to "image"
+          ? MultipartFile.fromBytes(image as List<int>, filename: fileName)
+          : await MultipartFile.fromFile(image.path, filename: fileName),
+      "current_glucose": currentGlucose,
+      "trend": glucoseTrend,
     });
-    final response = await _dio.post("/api/vision/analyze", data: formData);
-    return FoodAnalysis.fromJson(response.data);
-    */
 
-    return FoodAnalysis(
-      description: "Poulet grillé et Riz",
-      carbs: 45,
-      calories: 520,
-      advice: "Une marche de 15 minutes est recommandée après ce repas.",
+    print("DEBUG (Frontend VisionService): Sending FormData: ${formData.fields}"); // DEBUG PRINT
+    print("DEBUG (Frontend VisionService): Sending FormData files: ${formData.files}"); // DEBUG PRINT
+
+    final response = await _dio.post(
+      "/api/vision/food", 
+      data: formData,
+      options: Options(headers: {"Authorization": "Bearer $token"}), // Add Authorization header
     );
+    return FoodAnalysis.fromJson(response.data);
   }
 }
 

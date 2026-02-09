@@ -5,13 +5,13 @@ import '../services/auth_service.dart';
 final accessTokenProvider = StateProvider<String?>((ref) => null);
 
 // Fonction pour se connecter
-Future<bool> login(String email, String password, WidgetRef ref) async {
-  final success = await authService.login(email, password);
-  if (success) {
+Future<String?> login(String email, String password, WidgetRef ref) async {
+  final error = await authService.login(email, password);
+  if (error == null) {
     final token = await authService.getToken();
     ref.read(accessTokenProvider.notifier).state = token;
   }
-  return success;
+  return error;
 }
 
 // Fonction pour se connecter avec Google

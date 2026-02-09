@@ -74,18 +74,18 @@ class LoginScreen extends ConsumerWidget {
               DiasideButton(
                 label: "Se connecter",
                 onPressed: () async {
-                  final success = await login(
+                  final error = await login(
                     emailController.text,
                     passwordController.text,
                     ref,
                   );
 
                   if (context.mounted) {
-                    if (success) {
+                    if (error == null) {
                       Navigator.of(context).pushReplacementNamed('/main');
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Échec de la connexion. Vérifiez vos identifiants.")),
+                        SnackBar(content: Text(error)),
                       );
                     }
                   }

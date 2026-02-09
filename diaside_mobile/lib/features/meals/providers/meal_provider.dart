@@ -1,7 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
+
+// Conditional imports for dart:io and dart:typed_data
+import 'dart:io' if (dart.library.html) 'dart:typed_data';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class MealState {
@@ -9,7 +13,7 @@ class MealState {
   final String? advice;
   final int? carbs;
   final String? error;
-  final File? selectedImage;
+  final XFile? selectedImage; // Changed from File? to XFile?
 
   MealState({
     this.isLoading = false,
@@ -24,7 +28,7 @@ class MealState {
     String? advice,
     int? carbs,
     String? error,
-    File? selectedImage,
+    XFile? selectedImage, // Changed from File? to XFile?
   }) {
     return MealState(
       isLoading: isLoading ?? this.isLoading,
@@ -37,10 +41,19 @@ class MealState {
 }
 
 class MealNotifier extends StateNotifier<MealState> {
-  MealNotifier() : super(MealState());
+  late final Dio _dio;
+  
+  MealNotifier() : super(MealState()) {
+    String baseUrl;
+    if (kIsWeb) {
+      baseUrl = 'http://127.0.0.1:8000';
+    } else { // Simplified baseUrl logic to remove Platform.isAndroid
+      baseUrl = 'http://127.0.0.1:8000'; // Default for non-web, including Android
+    }
+    _dio = Dio(BaseOptions(baseUrl: baseUrl));
+  }
 
   final _picker = ImagePicker();
-  final _dio = Dio(BaseOptions(baseUrl: 'http://127.0.0.1:8000'));
   final _storage = const FlutterSecureStorage();
 
   Future<void> pickAndAnalyzeImage() async {
@@ -48,16 +61,25 @@ class MealNotifier extends StateNotifier<MealState> {
     
     if (photo == null) return;
 
-    state = state.copyWith(isLoading: true, selectedImage: File(photo.path), error: null);
+    state = state.copyWith(isLoading: true, selectedImage: photo, error: null); // Store XFile directly
 
     try {
       final token = await _storage.read(key: 'jwt_token');
       
       // Multipart upload
-      String fileName = photo.path.split('/').last;
-      FormData formData = FormData.fromMap({
-        "file": await MultipartFile.fromFile(photo.path, filename: fileName),
-      });
+      String fileName = photo.name; // Use photo.name for filename
+      FormData formData;
+
+      if (kIsWeb) {
+        final bytes = await photo.readAsBytes();
+        formData = FormData.fromMap({
+          "file": MultipartFile.fromBytes(bytes, filename: fileName),
+        });
+      } else {
+        formData = FormData.fromMap({
+          "file": await MultipartFile.fromFile(photo.path, filename: fileName),
+        });
+      }
 
       final response = await _dio.post(
         '/api/vision/analyze',

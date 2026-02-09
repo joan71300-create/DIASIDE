@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException, UploadFile, File, Form # Corrected import
 from sqlalchemy.orm import Session
 from opik import track
 from app.models import schemas, models
@@ -40,7 +40,7 @@ def connect_medtrum(
             current_user, 
             payload.username, 
             payload.password,
-            days=90 # On récupère 90 jours direct pour l'HbA1c
+            days=90 # On récupère 90 jours direct pour l`HbA1c
         )
         return result
     except Exception as e:
@@ -74,9 +74,9 @@ async def get_coach_advice(
 ):
     """
     Ticket B06: Endpoint IA Coach.
-    Reçoit un ChatRequest (Snapshot + Historique), calcule l'ajustement HbA1c (Ticket B05),
+    Reçoit un ChatRequest (Snapshot + Historique), calcule l`ajustement HbA1c (Ticket B05),
     et interroge Gemini 3.0 (Prompt Engine) avec les résultats.
-    Retourne la réponse brute de l'IA.
+    Retourne la réponse brute de l`IA.
     """
     snapshot = chat_request.snapshot
 
@@ -94,7 +94,7 @@ async def get_coach_advice(
     user_results = analyze_stability(snapshot.lab_data, snapshot.lifestyle, rolling_avg)
     
     # --- TICKET CARTE BLANCHE: Enrichissement via DB ---
-    # On charge les dernières stats et repas depuis la BDD pour donner le contexte réel à l'IA
+    # On charge les dernières stats et repas depuis la BDD pour donner le contexte réel à l`IA
     today = datetime.utcnow().date()
     db_stats = db.query(models.DailyStats).filter(
         models.DailyStats.user_id == current_user.id,
@@ -120,7 +120,7 @@ async def get_coach_advice(
     # Generate holistic context string
     health_ctx_str = ai_service.format_health_context(snapshot)
     
-    # Décoder l'image si présente (Base64 -> Bytes)
+    # Décoder l`image si présente (Base64 -> Bytes)
     image_bytes = None
     if chat_request.image_base64:
         import base64
@@ -144,7 +144,12 @@ async def get_coach_advice(
         )
     except ValueError as e:
         if "Safety Violation" in str(e):
-            raise HTTPException(status_code=403, detail="Advice not allowed")
+            # Return a generic message if blocked by safety filter
+            return schemas.AIAnalysisResponse(
+                advice="Je ne peux pas te donner de conseil sur ce sujet pour des raisons de sécurité. N\`hésite pas si tu as d\`autres questions.",
+                actions=[],
+                debug_results=user_results
+            )
         raise e
     
     # 4. Construction de la réponse structurée (DS-B-011)
@@ -215,8 +220,49 @@ def read_history(
 ):
     entries = db.query(models.GlucoseEntry).filter(
         models.GlucoseEntry.user_id == current_user.id
-    ).offset(skip).limit(limit).all()
+    ).order_by(models.GlucoseEntry.timestamp.desc()).offset(skip).limit(limit).all()
     return entries
+
+@router.get("/stats/tir")
+@track(name="api_get_tir")
+def get_tir_stats(
+    days: int = 1,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Calculates Time In Range (TIR) stats.
+    Target: 70-180 mg/dL
+    """
+    start_date = datetime.utcnow() - timedelta(days=days)
+    entries = db.query(models.GlucoseEntry).filter(
+        models.GlucoseEntry.user_id == current_user.id,
+        models.GlucoseEntry.timestamp >= start_date
+    ).all()
+    
+    if not entries:
+        return {"low": 0, "normal": 0, "high": 0, "count": 0}
+        
+    low = 0
+    normal = 0
+    high = 0
+    
+    for e in entries:
+        if e.value < 70:
+            low += 1
+        elif e.value > 180:
+            high += 1
+        else:
+            normal += 1
+            
+    total = len(entries)
+    return {
+        "low": round((low / total) * 100, 1),
+        "normal": round((normal / total) * 100, 1),
+        "high": round((high / total) * 100, 1),
+        "count": total,
+        "avg": round(sum(e.value for e in entries) / total, 0)
+    }
 
 @router.get("/stats/hba1c")
 @track(name="api_get_hba1c")
@@ -226,7 +272,7 @@ def get_hba1c_stats(
     db: Session = Depends(get_db)
 ):
     """
-    Calcule l'HbA1c estimée sur X jours directement en base.
+    Calcule l`HbA1c estimée sur X jours directement en base.
     Optimisé pour les gros volumes de données.
     """
     start_date = datetime.utcnow() - timedelta(days=days)
@@ -242,7 +288,7 @@ def get_hba1c_stats(
     avg_val = float(avg_glucose)
     estimated_hba1c = (avg_val + 46.7) / 28.7
     
-    # Récupérer l'offset utilisateur
+    # Récupérer l`offset utilisateur
     offset = current_user.questionnaire.hba1c_offset if current_user.questionnaire else 0.0
     
     return {
@@ -250,7 +296,7 @@ def get_hba1c_stats(
         "raw_hba1c": estimated_hba1c,
         "offset": offset,
         "avg_glucose": avg_val,
-        "points": 90000 # Juste pour info, on pourrait faire un count() mais c'est lourd
+        "points": 90000 # Juste pour info, on pourrait faire un count() mais c`est lourd
     }
 
 @router.post("/health/snapshot", response_model=schemas.HealthSnapshotResponse)
@@ -280,7 +326,7 @@ def receive_cgm_ping(
 ):
     """
     Ticket T-API001: Réception des pings CGM.
-    Enregistre une nouvelle mesure de glucose provenant d'un capteur.
+    Enregistre une nouvelle mesure de glucose provenant d`un capteur.
     Met à jour le questionnaire si fourni (T-SEC001).
     """
     # Mise à jour du Questionnaire (T-SEC001)
@@ -311,11 +357,57 @@ def receive_cgm_ping(
     db.refresh(db_entry)
     return db_entry
 
+@router.put("/profile", response_model=schemas.Questionnaire)
+@track(name="api_update_profile")
+def update_profile(
+    profile_data: schemas.QuestionnaireCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update user profile / questionnaire (Personalization).
+    """
+    db_quest = db.query(models.Questionnaire).filter(models.Questionnaire.user_id == current_user.id).first()
+    
+    if not db_quest:
+        # Create if missing
+        db_quest = models.Questionnaire(
+            user_id=current_user.id,
+            **profile_data.model_dump()
+        )
+        db.add(db_quest)
+    else:
+        # Update fields
+        for key, value in profile_data.model_dump(exclude_unset=True).items():
+            setattr(db_quest, key, value)
+            
+    db.commit()
+    db.refresh(db_quest)
+    return db_quest
+
+@router.get("/profile", response_model=schemas.Questionnaire)
+def get_profile(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    db_quest = db.query(models.Questionnaire).filter(models.Questionnaire.user_id == current_user.id).first()
+    if not db_quest:
+        # Return default/empty
+        return schemas.Questionnaire(
+            id=0, 
+            user_id=current_user.id, 
+            age=30, weight=70, height=170, diabetes_type="Type 1",
+            target_glucose_min=70, target_glucose_max=180
+        )
+    return db_quest
+
 # --- NEW ENDPOINT FOR FOOD RECOGNITION ---
 @router.post("/vision/food", response_model=schemas.FoodRecognitionResponse)
 @track(name="api_food_recognition")
 async def analyze_food_image(
-    request: schemas.FoodRecognitionRequest,
+    image: UploadFile = File(...),
+    current_glucose: float = Form(...),
+    trend: str = Form(...),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db) # db is included for consistency, though not directly used in analyze_meal
 ):
@@ -323,18 +415,16 @@ async def analyze_food_image(
     Analyzes an image of food to estimate nutritional information (carbs) and provide advice.
     """
     try:
-        # Decode base64 image
-        image_bytes = base64.b64decode(request.image_base64)
+        image_bytes = await image.read()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid base64 image: {e}")
+        raise HTTPException(status_code=400, detail=f"Error reading image file: {e}")
 
     try:
         # Call the VisionService to analyze the meal
-        # Pass current_glucose and trend from the request
         analysis_result = await vision_service.analyze_meal(
             image_bytes=image_bytes,
-            current_glucose=request.current_glucose,
-            trend=request.trend
+            current_glucose=current_glucose,
+            trend=trend
         )
 
         # Format the result into the response model
@@ -380,7 +470,7 @@ if settings.ENABLE_SIMULATION_ENDPOINT:
                 # Simulation : Onde sinusoïdale + Bruit aléatoire
                 base_value = target_avg_glucose + random.randint(-40, 40)
                 
-                # Post-prandial spikes (Midi et Soir)
+                # Post-prandial spikes (Midi et Soir)s
                 if hour in [13, 19]:
                     base_value += random.randint(20, 60)
                     
@@ -396,3 +486,5 @@ if settings.ENABLE_SIMULATION_ENDPOINT:
         db.commit()
         
         return {"message": f"Simulation terminée : {len(entries)} points générés.", "avg_target": target_avg_glucose}
+
+

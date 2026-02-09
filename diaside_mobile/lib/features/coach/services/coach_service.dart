@@ -1,17 +1,24 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/coach_models.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart'; // Import for kIsWeb
+// Removed: import 'dart:io';
+import 'package:diaside_mobile/core/constants/api_constants.dart'; // Import ApiConfig
 
 class CoachService {
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000',
-      connectTimeout: const Duration(seconds: 15), // Gemini can be slow
-      receiveTimeout: const Duration(seconds: 15),
-    ),
-  );
+  late final Dio _dio; // Declare Dio here
   final _storage = const FlutterSecureStorage();
+
+  CoachService() {
+    // Initialize Dio with ApiConfig.baseUrl
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: ApiConfig.baseUrl, // Use the centralized ApiConfig
+        connectTimeout: const Duration(seconds: 15), // Gemini can be slow
+        receiveTimeout: const Duration(seconds: 15),
+      ),
+    );
+  }
 
   Future<CoachResponse?> getAdvice({
     required UserHealthSnapshot snapshot,

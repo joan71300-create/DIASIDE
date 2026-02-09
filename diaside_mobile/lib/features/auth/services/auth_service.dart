@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-// Add this import
+import 'package:diaside_mobile/core/constants/api_constants.dart'; // Import ApiConfig
+
+// Removed: import 'dart:io';
 
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -13,12 +16,14 @@ class AuthService {
   final _storage = const FlutterSecureStorage();
 
   AuthService() {
-    final baseUrl = dotenv.env['BASE_URL'] ?? 'http://127.0.0.1:8000';
+    // Use ApiConfig.baseUrl as the default URL
+    final baseUrl = ApiConfig.baseUrl;
+    
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 60), // Increased from 10s
-        receiveTimeout: const Duration(seconds: 300), // Increased to 5min for heavy sync
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 30),
       ),
     );
   }
@@ -49,7 +54,7 @@ class AuthService {
   }
 
   /// Email/Password Login (Firebase)
-  Future<bool> login(String email, String password) async {
+  Future<String?> login(String email, String password) async {
     try {
       final UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email, 
@@ -58,12 +63,13 @@ class AuthService {
       final String? idToken = await userCredential.user?.getIdToken();
       
       if (idToken != null) {
-        return await _authenticateWithBackend(idToken);
+        final success = await _authenticateWithBackend(idToken);
+        return success ? null : "Échec synchronisation Backend (Vérifiez logs)";
       }
-      return false;
+      return "Erreur Token Firebase (Null)";
     } catch (e) {
-      print('Firebase Login error: $e');
-      return false;
+      print('Login error: $e');
+      return e.toString();
     }
   }
 
@@ -77,7 +83,7 @@ class AuthService {
       // On peut envoyer un email de vérification ici : userCredential.user?.sendEmailVerification();
       
       // Après inscription, on connecte automatiquement
-      return await login(email, password) ? null : "Erreur lors de la connexion post-inscription";
+      return await login(email, password);
     } catch (e) {
       print('Register error: $e');
       return e.toString();
@@ -120,6 +126,28 @@ class AuthService {
   Future<String?> getToken() async {
     // On peut renvoyer le token stocké, ou rafraîchir le token Firebase si besoin
     return await _storage.read(key: 'jwt_token');
+  }
+
+  /// Restaure la session : vérifie le token Backend ou le rafraîchit via Firebase
+  Future<String?> restoreSession() async {
+    String? token = await _storage.read(key: 'jwt_token');
+    
+    // Si on a un user Firebase mais pas de token (ou on veut être sûr), on sync
+    final user = _firebaseAuth.currentUser;
+    if (user != null) {
+      try {
+        final idToken = await user.getIdToken(true); // Force refresh
+        if (idToken != null) {
+          final success = await _authenticateWithBackend(idToken);
+          if (success) {
+            token = await _storage.read(key: 'jwt_token');
+          }
+        }
+      } catch (e) {
+        print("Session Restore Error: $e");
+      }
+    }
+    return token;
   }
 }
 

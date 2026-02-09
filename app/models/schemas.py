@@ -36,6 +36,8 @@ class QuestionnaireBase(BaseModel):
     daily_step_goal: Optional[int] = 10000
     dietary_preferences: Optional[str] = None
     diabetes_type: str
+    physical_limitations: Optional[str] = None # e.g. "boiteux", "douleur genou"
+    name: Optional[str] = None # First name or nickname
     target_glucose_min: float
     target_glucose_max: float
     # HbA1c Goals
@@ -138,10 +140,12 @@ class LifestyleProfile(BaseModel):
     diet_type: str = Field(..., min_length=2, description="Type of diet (e.g. Keto, Vegan, Balanced)")
     is_smoker: bool
     is_athlete: bool = Field(False, description="Professional or high-intensity athlete status")
+    physical_limitations: Optional[str] = Field(None, description="Physical limitations or injuries")
     gender: Optional[str] = "Male" # Added default for backward comp
     daily_step_goal: int = 10000
 
 class UserHealthSnapshot(BaseModel):
+    name: Optional[str] = Field(None, description="User's name")
     age: int = Field(..., ge=0, le=120, description="Age in years")
     weight: float = Field(..., gt=0, description="Weight in kg")
     height: float = Field(..., gt=0, description="Height in cm")

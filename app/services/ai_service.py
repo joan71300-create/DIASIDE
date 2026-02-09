@@ -225,6 +225,14 @@ class AIService:
         if anon_snapshot.height:
             biometrics_str += f", {anon_snapshot.height}cm"
 
+        # Name
+        name_str = f"Nom: {anon_snapshot.name}" if anon_snapshot.name else "Nom: Inconnu"
+
+        # Limitations
+        limitations_str = ""
+        if anon_snapshot.lifestyle.physical_limitations:
+             limitations_str = f"- ⚠️ LIMITATIONS PHYSIQUES : {anon_snapshot.lifestyle.physical_limitations}\n"
+
         # Format Goals
         goal_context = ""
         if anon_snapshot.target_hba1c:
@@ -234,9 +242,10 @@ class AIService:
             goal_context += ".\n"
 
         return (
-            f"PROFIL PATIENT :\n"
+            f"PROFIL PATIENT ({name_str}):\n"
             f"- Info: {anon_snapshot.age} ans, {anon_snapshot.lifestyle.gender}, {anon_snapshot.diabetes_type}\n"
             f"- Biométrie: {biometrics_str}\n"
+            f"{limitations_str}"
             f"{goal_context}"
             f"- Objectif Pas: {anon_snapshot.lifestyle.daily_step_goal}/jour\n"
             f"- Activité: Niveau {anon_snapshot.lifestyle.activity_level.value}. {activity_context}\n"

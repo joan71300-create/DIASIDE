@@ -1,9 +1,11 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'glucose_model.dart';
+import 'package:diaside_mobile/core/constants/api_constants.dart'; // Import new ApiConfig
+
+// Removed: import 'dart:io';
 
 class GlucoseNotifier extends StateNotifier<List<GlucoseEntry>> {
   GlucoseNotifier(this.ref) : super([]) {
@@ -14,15 +16,9 @@ class GlucoseNotifier extends StateNotifier<List<GlucoseEntry>> {
   final _storage = const FlutterSecureStorage();
   late final Dio _dio;
 
-  String get _baseUrl {
-    if (kIsWeb) return 'http://127.0.0.1:8000';
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000';
-    return 'http://127.0.0.1:8000';
-  }
-
   void _initDio() {
     _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
+      baseUrl: ApiConfig.baseUrl, // Use the centralized ApiConfig
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ));

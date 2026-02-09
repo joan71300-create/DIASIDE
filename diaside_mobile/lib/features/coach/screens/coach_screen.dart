@@ -56,7 +56,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     if (_selectedImageBase64 == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Veuillez sélectionner une image d'abord.")),
+          const SnackBar(content: Text("Veuillez sélectionner une image d\`abord.")),
         );
       }
       return;
@@ -78,7 +78,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Analyse: ${response.carbs}g glucides. Conseil: ${response.advice}"),
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 10), // Increased duration
           ),
         );
       }
@@ -88,8 +88,8 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Erreur lors de l'analyse: ${e.toString()}"),
-            duration: const Duration(seconds: 5),
+            content: Text("Erreur lors de l\`analyse: ${e.toString()}"),
+            duration: const Duration(seconds: 10), // Increased duration
           ),
         );
       }
@@ -167,7 +167,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Activité enregistrée ! Le coach est au courant.")));
                     // Trigger coach update?
-                    ref.read(coachProvider.notifier).sendMessage("Je viens de faire $steps pas. Qu'en penses-tu ?", _snapshot);
+                    ref.read(coachProvider.notifier).sendMessage("Je viens de faire $steps pas. Qu\`en penses-tu ?", _snapshot);
                   }
                 } catch (e) {
                   if (mounted) {
@@ -415,7 +415,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.background,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -4))], 
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -517,7 +517,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
                   initialValue: activity,
                   items: ["sedentary", "moderate", "active"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                   onChanged: (v) => setState(() => activity = v!),
-                  decoration: const InputDecoration(labelText: "Niveau d'activité"),
+                  decoration: const InputDecoration(labelText: "Niveau d\`activité"),
                 ),
                 
                 const Spacer(),

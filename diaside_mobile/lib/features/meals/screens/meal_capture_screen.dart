@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart'; // For kIsWeb
+
+// Conditional import for dart:io
+import 'dart:io' show File; // Import only 'File' class from dart:io
+
 import '../services/vision_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/diaside_card.dart';
+import '../../glucose/glucose_provider.dart'; // Import glucose provider
+
 
 // État local
-final imageProvider = StateProvider<File?>((ref) => null);
+final imageProvider = StateProvider<XFile?>((ref) => null);
 final analysisProvider = StateProvider<FoodAnalysis?>((ref) => null);
 final isLoadingProvider = StateProvider<bool>((ref) => false);
 final errorProvider = StateProvider<String?>((ref) => null);
@@ -21,24 +27,40 @@ class MealCaptureScreen extends ConsumerWidget {
     final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
-      ref.read(imageProvider.notifier).state = File(pickedFile.path);
+      ref.read(imageProvider.notifier).state = pickedFile;
       ref.read(analysisProvider.notifier).state = null;
       ref.read(errorProvider.notifier).state = null;
     }
   }
 
   Future<void> _analyzeImage(WidgetRef ref, BuildContext context) async {
-    final imageFile = ref.read(imageProvider);
-    if (imageFile == null) return;
+    final XFile? pickedFile = ref.read(imageProvider);
+    if (pickedFile == null) return;
 
     ref.read(isLoadingProvider.notifier).state = true;
     ref.read(errorProvider.notifier).state = null;
 
     try {
       final visionService = ref.read(visionServiceProvider);
-      final analysis = await visionService.analyzeFood(imageFile);
+      FoodAnalysis analysis;
+
+      // Get current glucose from provider
+      final glucoseEntries = ref.read(glucoseProvider);
+      final currentGlucose = glucoseEntries.isNotEmpty ? glucoseEntries.first.value : 120.0; // Default to 120 mg/dL if no data
+      const glucoseTrend = "stable"; // Placeholder for now
+
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        analysis = await visionService.analyzeFood(bytes, pickedFile.name, currentGlucose, glucoseTrend);
+      } else {
+        // For non-web platforms, we still need a File object
+        final imageFile = File(pickedFile.path);
+        analysis = await visionService.analyzeFood(imageFile, pickedFile.name, currentGlucose, glucoseTrend);
+      }
+
       ref.read(analysisProvider.notifier).state = analysis;
     } catch (e) {
+      print("Erreur lors de l'analyse. Vérifiez votre connexion.");
       ref.read(errorProvider.notifier).state = "Erreur lors de l'analyse. Vérifiez votre connexion.";
     } finally {
       ref.read(isLoadingProvider.notifier).state = false;
@@ -60,7 +82,10 @@ class MealCaptureScreen extends ConsumerWidget {
             // 1. Camera/Image Area
             Positioned.fill(
               child: image != null
-                  ? Image.file(image, fit: BoxFit.cover)
+                  ? (kIsWeb
+                      ? Image.network(image.path, fit: BoxFit.cover) // For web, use Image.network with XFile.path
+                      : Image.file(File(image.path), fit: BoxFit.cover) // For non-web, convert XFile.path to File
+                    )
                   : GestureDetector(
                       onTap: () => _pickImage(ref, ImageSource.camera),
                       child: Container(
@@ -87,7 +112,7 @@ class MealCaptureScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              "L'IA analysera les glucides pour vous",
+                              "L\'IA analysera les glucides pour vous",
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 color: Colors.grey,

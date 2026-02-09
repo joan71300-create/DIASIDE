@@ -29,6 +29,8 @@ class Questionnaire(Base):
     daily_step_goal = Column(Integer, default=10000)
     dietary_preferences = Column(String, nullable=True) # JSON or comma-separated
     diabetes_type = Column(String) # "Type 1", "Type 2", "Gestational"
+    physical_limitations = Column(String, nullable=True) # e.g. "boiteux", "douleur genou"
+    name = Column(String, nullable=True) # First name or nickname
     target_glucose_min = Column(Float)
     target_glucose_max = Column(Float)
     

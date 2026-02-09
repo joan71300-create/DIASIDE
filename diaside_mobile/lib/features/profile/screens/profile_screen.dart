@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/diaside_card.dart';
+import 'edit_profile_screen.dart';
 
 import '../../glucose/glucose_provider.dart'; // Added import
 
@@ -26,7 +27,11 @@ class ProfileScreen extends ConsumerWidget {
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  _buildMenuItem(Icons.person_outline, "Informations Personnelles"),
+                  _buildMenuItem(
+                    Icons.person_outline, 
+                    "Informations Personnelles",
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+                  ),
                   const Divider(height: 1),
                   _buildMenuItem(
                     Icons.tune, 
