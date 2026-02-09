@@ -9,17 +9,22 @@ from app.models.database import get_db
 from datetime import timedelta
 import firebase_admin
 from firebase_admin import auth as firebase_auth, credentials
+import json # ADDED
 import os
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # Initialisation de Firebase Admin (une seule fois)
-# On cherche le fichier de config dans les variables d'env ou à la racine
-cred_path = settings.FIREBASE_CREDENTIALS_PATH # Use the path from settings
-if os.path.exists(cred_path) and not firebase_admin._apps:
-    cred = credentials.Certificate(cred_path)
-    firebase_admin.initialize_app(cred)
+# Les identifiants sont lus depuis une variable d'environnement (JSON string)
+if not firebase_admin._apps: # Check if app is not already initialized
+    # Vérifier si la variable d'environnement est définie et non vide
+    if settings.FIREBASE_CREDENTIALS_JSON:
+        service_account_info = json.loads(settings.FIREBASE_CREDENTIALS_JSON)
+        cred = credentials.Certificate(service_account_info)
+        firebase_admin.initialize_app(cred)
+    else:
+        print("⚠️ FIREBASE_CREDENTIALS_JSON n'est pas configuré. Firebase Admin ne sera pas initialisé.")
 
 @router.post("/firebase-login", response_model=schemas.Token)
 @track(name="api_firebase_login")

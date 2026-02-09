@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     ENABLE_SIMULATION_ENDPOINT: bool = False
     
     # Firebase
-    FIREBASE_CREDENTIALS_PATH: str = "serviceAccountKey.json"
+    FIREBASE_CREDENTIALS_JSON: str # Doit être chargé depuis .env comme JSON string
 
     model_config = ConfigDict(env_file=".env", extra="ignore")
 
