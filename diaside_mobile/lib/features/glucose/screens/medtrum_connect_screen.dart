@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/diaside_button.dart';
 import '../../glucose/glucose_provider.dart';
+import '../../../../core/constants/api_constants.dart'; // Importer ApiConfig
 
 // Removed: import 'dart:io';
 
@@ -13,7 +14,8 @@ class MedtrumConnectScreen extends ConsumerStatefulWidget {
   const MedtrumConnectScreen({super.key});
 
   @override
-  ConsumerState<MedtrumConnectScreen> createState() => _MedtrumConnectScreenState();
+  ConsumerState<MedtrumConnectScreen> createState() =>
+      _MedtrumConnectScreenState();
 }
 
 class _MedtrumConnectScreenState extends ConsumerState<MedtrumConnectScreen> {
@@ -31,23 +33,17 @@ class _MedtrumConnectScreenState extends ConsumerState<MedtrumConnectScreen> {
     try {
       final storage = const FlutterSecureStorage();
       final token = await storage.read(key: 'jwt_token');
-      
-      // Appel API Backend
-      // Note: L'URL de base est gérée par Dio dans le provider global, mais ici je fais simple
+
+      // Appel API Backend en utilisant la configuration globale
       final dio = Dio();
-      String baseUrl;
-      if (kIsWeb) {
-        baseUrl = 'http://127.0.0.1:8000';
-      } else { // Simplified baseUrl logic to remove Platform.isAndroid
-        baseUrl = 'http://127.0.0.1:8000'; // Default for non-web, including Android
-      }
-      
+      final baseUrl = ApiConfig.baseUrl; // Utiliser la config globale
+
       final response = await dio.post(
         '$baseUrl/api/medtrum/connect',
         data: {
           'username': _usernameController.text,
           'password': _passwordController.text,
-          'region': 'fr'
+          'region': 'fr',
         },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
@@ -60,13 +56,12 @@ class _MedtrumConnectScreenState extends ConsumerState<MedtrumConnectScreen> {
       // Save credentials for Auto-Sync
       await storage.write(key: 'medtrum_user', value: _usernameController.text);
       await storage.write(key: 'medtrum_pass', value: _passwordController.text);
-      
+
       // Refresh Data
       ref.invalidate(glucoseProvider);
-      
+
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) Navigator.pop(context);
-
     } catch (e) {
       setState(() {
         _status = "Erreur: $e";
@@ -79,29 +74,47 @@ class _MedtrumConnectScreenState extends ConsumerState<MedtrumConnectScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: AppBar(title: const Text("Connexion Medtrum"), backgroundColor: AppColors.background),
+      appBar: AppBar(
+        title: const Text("Connexion Medtrum"),
+        backgroundColor: AppColors.background,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const Text("Entrez vos identifiants EasyView pour synchroniser automatiquement vos données (90 jours)."),
+            const Text(
+              "Entrez vos identifiants EasyView pour synchroniser automatiquement vos données (90 jours).",
+            ),
             const SizedBox(height: 20),
             TextField(
               controller: _usernameController,
-              decoration: const InputDecoration(labelText: "Email EasyView", prefixIcon: Icon(Icons.email)),
+              decoration: const InputDecoration(
+                labelText: "Email EasyView",
+                prefixIcon: Icon(Icons.email),
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: "Mot de passe", prefixIcon: Icon(Icons.lock)),
+              decoration: const InputDecoration(
+                labelText: "Mot de passe",
+                prefixIcon: Icon(Icons.lock),
+              ),
             ),
             const SizedBox(height: 30),
-            if (_isLoading) const CircularProgressIndicator()
-            else DiasideButton(label: "Synchroniser", onPressed: _connect),
-            
+            if (_isLoading)
+              const CircularProgressIndicator()
+            else
+              DiasideButton(label: "Synchroniser", onPressed: _connect),
+
             const SizedBox(height: 20),
-            Text(_status, style: TextStyle(color: _status.startsWith("Erreur") ? Colors.red : Colors.green)),
+            Text(
+              _status,
+              style: TextStyle(
+                color: _status.startsWith("Erreur") ? Colors.red : Colors.green,
+              ),
+            ),
           ],
         ),
       ),
