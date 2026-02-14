@@ -9,7 +9,7 @@ from opik import track
 from app.core.config import settings
 from app.models import schemas
 from app.core.guardrails import SafetyGuardrails
-from app.core.prompts import COACH_SYSTEM_PROMPT
+from app.core.prompts import COACH_SYSTEM_PROMPT_V2
 
 class AIService:
     def __init__(self):
@@ -26,15 +26,12 @@ class AIService:
     @track(name="generate_coach_advice")
     async def generate_coach_advice(self, user_results: dict, history: list = [], user_message: str = None, health_context: str = "", image_bytes: bytes = None) -> dict:
         """
-        Ticket B06/DS-B-011: Consultation Gemini 3.0 avec injection dynamique et réponse structurée (JSON).
-        Gère le timeout (10s) et les rate limits.
-        
-        Ticket AI-001: Ajout du support Multi-Turn (history + user_message).
-        Ticket AI-005: Utilisation du prompt centralisé avec Few-Shot.
+        Coach IA avec support multi-turn, mémoire et contexte temps réel.
+        Utilise le prompt V2 avec toutes les capacités avancées.
         """
         try:
             # Injection dynamique du JSON user_results
-            prompt = f"{COACH_SYSTEM_PROMPT}\n\n"
+            prompt = f"{COACH_SYSTEM_PROMPT_V2}\n\n"
             
             if health_context:
                 prompt += f"{health_context}\n\n"

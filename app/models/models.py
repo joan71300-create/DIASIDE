@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Float, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Boolean, Column, Float, Integer, String, ForeignKey, DateTime, Text, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.models.database import Base
@@ -15,6 +15,8 @@ class User(Base):
     glucose_entries = relationship("GlucoseEntry", back_populates="user")
     daily_stats = relationship("DailyStats", back_populates="user")
     meals = relationship("Meal", back_populates="user")
+    conversations = relationship("Conversation", back_populates="user")
+    user_memories = relationship("UserMemory", back_populates="user")
 
 class Questionnaire(Base):
     __tablename__ = "questionnaires"
@@ -79,3 +81,46 @@ class GlucoseEntry(Base):
     note = Column(String, nullable=True)
     
     user = relationship("User", back_populates="glucose_entries")
+
+# ==================== NOUVEAUX MODÈLES POUR LA MÉMOIRE DU CHATBOT ====================
+
+class Conversation(Base):
+    """Table de conversation pour la persistence de l'historique du chat"""
+    __tablename__ = "conversations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String, nullable=True)  # Titre de la conversation (ex: "Conseil alimentaire")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", back_populates="conversations")
+    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
+
+
+class Message(Base):
+    """Table de messages pour l'historique du chat"""
+    __tablename__ = "messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"))
+    role = Column(String)  # "user" ou "model" (assistant)
+    content = Column(Text)  # Contenu du message
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    metadata = Column(JSON, nullable=True)  # Métadonnées supplémentaires (ex: actions suggérées)
+    
+    conversation = relationship("Conversation", back_populates="messages")
+
+
+class UserMemory(Base):
+    """Table de mémoire utilisateur pour stocker les préférences et contraintes"""
+    __tablename__ = "user_memories"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    memory_key = Column(String, index=True)  # Clé de mémoire (ex: "food_preferences", "allergies", "goals")
+    memory_value = Column(Text)  # Valeur (ex: JSON stringifié)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", back_populates="user_memories")

@@ -488,3 +488,368 @@ if settings.ENABLE_SIMULATION_ENDPOINT:
         return {"message": f"Simulation terminée : {len(entries)} points générés.", "avg_target": target_avg_glucose}
 
 
+# ==================== NOUVEAUX ENDPOINTS POUR LA MÉMOIRE DU CHATBOT ====================
+
+@router.post("/chat/create", response_model=schemas.ConversationResponse)
+@track(name="api_create_conversation")
+def create_conversation(
+    payload: schemas.ConversationCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Crée une nouvelle conversation.
+    """
+    conversation = models.Conversation(
+        user_id=current_user.id,
+        title=payload.title or f"Conversation du {datetime.utcnow().strftime('%d/%m/%Y %H:%M')}"
+    )
+    db.add(conversation)
+    db.commit()
+    db.refresh(conversation)
+    return conversation
+
+
+@router.get("/chat/history", response_model=list[schemas.ConversationListResponse])
+@track(name="api_get_conversations")
+def get_conversations(
+    limit: int = 20,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Liste toutes les conversations de l'utilisateur.
+    """
+    conversations = db.query(models.Conversation).filter(
+        models.Conversation.user_id == current_user.id
+    ).order_by(models.Conversation.updated_at.desc()).limit(limit).all()
+    
+    result = []
+    for conv in conversations:
+        message_count = db.query(func.count(models.Message.id)).filter(
+            models.Message.conversation_id == conv.id
+        ).scalar() or 0
+        
+        result.append(schemas.ConversationListResponse(
+            id=conv.id,
+            title=conv.title,
+            created_at=conv.created_at,
+            updated_at=conv.updated_at,
+            message_count=message_count
+        ))
+    
+    return result
+
+
+@router.get("/chat/{conversation_id}/messages", response_model=schemas.ConversationResponse)
+@track(name="api_get_messages")
+def get_messages(
+    conversation_id: int,
+    limit: int = 50,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Récupère tous les messages d'une conversation.
+    """
+    conversation = db.query(models.Conversation).filter(
+        models.Conversation.id == conversation_id,
+        models.Conversation.user_id == current_user.id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
+    
+    messages = db.query(models.Message).filter(
+        models.Message.conversation_id == conversation_id
+    ).order_by(models.Message.timestamp.asc()).limit(limit).all()
+    
+    conversation.messages = messages
+    return conversation
+
+
+@router.delete("/chat/{conversation_id}")
+@track(name="api_delete_conversation")
+def delete_conversation(
+    conversation_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Supprime une conversation et tous ses messages.
+    """
+    conversation = db.query(models.Conversation).filter(
+        models.Conversation.id == conversation_id,
+        models.Conversation.user_id == current_user.id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
+    
+    db.delete(conversation)
+    db.commit()
+    
+    return {"message": "Conversation supprimée"}
+
+
+# --- Endpoints pour la User Memory ---
+
+@router.get("/memory", response_model=list[schemas.UserMemoryResponse])
+@track(name="api_get_memories")
+def get_memories(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Récupère toutes les mémoires de l'utilisateur.
+    """
+    memories = db.query(models.UserMemory).filter(
+        models.UserMemory.user_id == current_user.id
+    ).all()
+    return memories
+
+
+@router.post("/memory", response_model=schemas.UserMemoryResponse)
+@track(name="api_save_memory")
+def save_memory(
+    payload: schemas.UserMemoryCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Sauvegarde ou met à jour une mémoire utilisateur.
+    """
+    # Chercher si la clé existe déjà
+    existing = db.query(models.UserMemory).filter(
+        models.UserMemory.user_id == current_user.id,
+        models.UserMemory.memory_key == payload.memory_key
+    ).first()
+    
+    if existing:
+        existing.memory_value = payload.memory_value
+        db.commit()
+        db.refresh(existing)
+        return existing
+    else:
+        memory = models.UserMemory(
+            user_id=current_user.id,
+            memory_key=payload.memory_key,
+            memory_value=payload.memory_value
+        )
+        db.add(memory)
+        db.commit()
+        db.refresh(memory)
+        return memory
+
+
+@router.delete("/memory/{memory_key}")
+@track(name="api_delete_memory")
+def delete_memory(
+    memory_key: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Supprime une mémoire utilisateur.
+    """
+    memory = db.query(models.UserMemory).filter(
+        models.UserMemory.user_id == current_user.id,
+        models.UserMemory.memory_key == memory_key
+    ).first()
+    
+    if not memory:
+        raise HTTPException(status_code=404, detail="Mémoire non trouvée")
+    
+    db.delete(memory)
+    db.commit()
+    
+    return {"message": "Mémoire supprimée"}
+
+
+# --- Endpoint centralisé pour le chat avec persistance ---
+
+@router.post("/chat/message", response_model=schemas.EnhancedAIAnalysisResponse)
+@track(name="api_chat_with_memory")
+async def send_chat_message(
+    chat_request: schemas.ChatWithHistoryRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint centralisé qui:
+    1. Crée/récupère une conversation
+    2. Sauvegarde le message utilisateur
+    3. Charge l'historique depuis la DB
+    4. Appelle le coach IA avec tout le contexte
+    5. Sauvegarde la réponse
+    6. Retourne tout avec les metadata
+    """
+    # 1. Gérer la conversation
+    if chat_request.conversation_id:
+        conversation = db.query(models.Conversation).filter(
+            models.Conversation.id == chat_request.conversation_id,
+            models.Conversation.user_id == current_user.id
+        ).first()
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation non trouvée")
+    else:
+        # Créer nouvelle conversation
+        conversation = models.Conversation(
+            user_id=current_user.id,
+            title=f"Chat du {datetime.utcnow().strftime('%d/%m/%Y')}"
+        )
+        db.add(conversation)
+        db.commit()
+        db.refresh(conversation)
+    
+    # 2. Sauvegarder le message utilisateur
+    user_message = models.Message(
+        conversation_id=conversation.id,
+        role="user",
+        content=chat_request.user_message
+    )
+    db.add(user_message)
+    db.commit()
+    db.refresh(user_message)
+    
+    # 3. Charger l'historique depuis la DB (si demandé)
+    history = []
+    if chat_request.load_history_from_db:
+        db_messages = db.query(models.Message).filter(
+            models.Message.conversation_id == conversation.id
+        ).order_by(models.Message.timestamp.asc()).all()
+        
+        # Limiter à 10 derniers messages pour le contexte
+        for msg in db_messages[-10:]:
+            history.append(schemas.ChatMessage(role=msg.role, content=msg.content))
+    
+    # 4. Enrichir le contexte avec les données temps réel
+    snapshot = chat_request.snapshot
+    
+    # Calcul des stats glycémie temps réel (7 derniers jours)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    glucose_entries = db.query(models.GlucoseEntry).filter(
+        models.GlucoseEntry.user_id == current_user.id,
+        models.GlucoseEntry.timestamp >= seven_days_ago
+    ).all()
+    
+    # Calcul TIR 7 jours
+    if glucose_entries:
+        total = len(glucose_entries)
+        low = sum(1 for e in glucose_entries if e.value < 70)
+        normal = sum(1 for e in glucose_entries if 70 <= e.value <= 180)
+        high = sum(1 for e in glucose_entries if e.value > 180)
+        
+        # Ajouter au contexte
+        glucose_context = f"\n\n📊 STATS GLYCÉMIE (7 derniers jours):\n"
+        glucose_context += f"- TIR: {round((normal/total)*100, 1)}% (Cible: >70%)\n"
+        glucose_context += f"- Temps bas (<70): {round((low/total)*100, 1)}%\n"
+        glucose_context += f"- Temps haut (>180): {round((high/total)*100, 1)}%\n"
+        glucose_context += f"- Moyenne: {round(sum(e.value for e in glucose_entries)/total, 0)} mg/dL\n"
+    else:
+        glucose_context = "\n\n📊 STATS: Pas de données glycémie récentes."
+    
+    # 5. Charger la User Memory
+    user_memories = db.query(models.UserMemory).filter(
+        models.UserMemory.user_id == current_user.id
+    ).all()
+    
+    memory_context = "\n\n🧠 MÉMOIRE UTILISATEUR:\n"
+    if user_memories:
+        for mem in user_memories:
+            memory_context += f"- {mem.memory_key}: {mem.memory_value}\n"
+    else:
+        memory_context += "Aucune préférence enregistrée.\n"
+    
+    # Contexte complet
+    full_context = glucose_context + memory_context
+    
+    # 6. Appeler le coach IA
+    snapshot = chat_request.snapshot
+    ninety_days_ago = datetime.utcnow() - timedelta(days=90)
+    avg_result = db.query(func.avg(models.GlucoseEntry.value)).filter(
+        models.GlucoseEntry.user_id == current_user.id,
+        models.GlucoseEntry.timestamp >= ninety_days_ago
+    ).scalar()
+    rolling_avg = float(avg_result) if avg_result else float(snapshot.lab_data.fasting_glucose)
+    
+    # Analyse de stabilité
+    user_results = analyze_stability(snapshot.lab_data, snapshot.lifestyle, rolling_avg)
+    
+    # Enrichir avec stats et meals
+    today = datetime.utcnow().date()
+    db_stats = db.query(models.DailyStats).filter(
+        models.DailyStats.user_id == current_user.id,
+        func.date(models.DailyStats.date) == today
+    ).first()
+    if db_stats:
+        snapshot.recent_activity.append(schemas.DailyStats.model_validate(db_stats))
+    
+    db_meals = db.query(models.Meal).filter(
+        models.Meal.user_id == current_user.id
+    ).order_by(models.Meal.timestamp.desc()).limit(3).all()
+    if db_meals:
+        snapshot.recent_meals = [schemas.Meal.model_validate(m) for m in db_meals]
+    
+    # Injecter goals
+    if current_user.questionnaire:
+        snapshot.target_hba1c = current_user.questionnaire.target_hba1c
+        snapshot.target_hba1c_date = current_user.questionnaire.target_hba1c_date
+    
+    health_ctx_str = ai_service.format_health_context(snapshot) + full_context
+    
+    # Decoder image
+    image_bytes = None
+    if chat_request.image_base64:
+        try:
+            b64_str = chat_request.image_base64
+            if "," in b64_str:
+                b64_str = b64_str.split(",")[1]
+            image_bytes = base64.b64decode(b64_str)
+        except Exception as e:
+            print(f"⚠️ Erreur décodage image: {e}")
+    
+    # Appel IA
+    try:
+        ai_response = await ai_service.generate_coach_advice(
+            user_results,
+            history=history,
+            user_message=chat_request.user_message,
+            health_context=health_ctx_str,
+            image_bytes=image_bytes
+        )
+    except ValueError as e:
+        if "Safety Violation" in str(e):
+            return schemas.EnhancedAIAnalysisResponse(
+                advice="Je ne peux pas te donner de conseil sur ce sujet pour des raisons de sécurité.",
+                actions=[],
+                debug_results=user_results,
+                conversation_id=conversation.id,
+                message_id=user_message.id
+            )
+        raise e
+    
+    # 7. Sauvegarder la réponse du coach
+    assistant_message = models.Message(
+        conversation_id=conversation.id,
+        role="model",
+        content=ai_response.get("advice", ""),
+        metadata={"actions": ai_response.get("actions", [])}
+    )
+    db.add(assistant_message)
+    
+    # Mettre à jour la conversation
+    conversation.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(assistant_message)
+    
+    # 8. Retourner la réponse enrichie
+    return schemas.EnhancedAIAnalysisResponse(
+        advice=ai_response.get("advice", ""),
+        actions=ai_response.get("actions", []),
+        debug_results=user_results,
+        conversation_id=conversation.id,
+        message_id=assistant_message.id
+    )
+
+

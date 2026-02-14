@@ -3,79 +3,659 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DIASIDE - Documentation</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>DiaSide - Coach Diabète AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --primary-light: #C8E6C9;
+            --background: #F5F5F5;
+            --surface: #FFFFFF;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --text-tertiary: #BDBDBD;
+            --user-bubble: #4CAF50;
+            --bot-bubble: #FFFFFF;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo span {
+            font-size: 2rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Auth Screen */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        }
+
+        .auth-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-box h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--primary-dark);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn:disabled {
+            background: var(--text-tertiary);
+            cursor: not-allowed;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            background: var(--surface);
+        }
+
+        .chat-container.active {
+            display: flex;
+        }
+
+        /* Chat Messages */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1rem 1.25rem;
+            border-radius: 16px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--user-bubble);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot {
+            align-self: flex-start;
+            background: var(--bot-bubble);
+            border: 1px solid #E0E0E0;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .message.typing {
+            display: flex;
+            gap: 4px;
+            padding: 1rem;
+        }
+
+        .message.typing span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-tertiary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .message.typing span:nth-child(1) { animation-delay: -0.32s; }
+        .message.typing span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0 1rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .quick-action {
+            padding: 0.5rem 1rem;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            border: none;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .quick-action:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 1rem;
+            background: var(--surface);
+            border-top: 1px solid #E0E0E0;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #E0E0E0;
+            border-radius: 24px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-area input:focus {
+            border-color: var(--primary);
+        }
+
+        .input-area button {
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        .input-area button:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .input-area button:disabled {
+            background: var(--text-tertiary);
+            cursor: not-allowed;
+        }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding: 0.75rem 1rem;
+            background: #FAFAFA;
+            border-top: 1px solid #E0E0E0;
+        }
+
+        .action-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid #E0E0E0;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .action-chip:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .action-chip .icon {
+            font-size: 1rem;
+        }
+
+        /* Stats */
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 0.75rem;
+            background: #FAFAFA;
+            border-bottom: 1px solid #E0E0E0;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            header {
+                padding: 0.75rem 1rem;
+            }
+            
+            .logo h1 {
+                font-size: 1.25rem;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <h1>DIASIDE</h1>
-            <p>L'Assistant Intelligent pour l'Équilibre Diabétique</p>
+    <!-- Auth Screen -->
+    <div class="auth-container" id="authScreen">
+        <div class="auth-box">
+            <div class="logo" style="justify-content: center; margin-bottom: 1rem;">
+                <span>🏥</span>
+                <h2>DiaSide</h2>
+            </div>
+            <h2>Connexion</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" required placeholder="votre@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn" id="loginBtn">Se connecter</button>
+            </form>
         </div>
-    </header>
+    </div>
 
-    <main class="container">
-        <!-- 1. La Genèse / Le Problème -->
-        <section id="motivation">
-            <h2>🎯 Pourquoi DIASIDE ?</h2>
-            <div class="highlight">
-                <strong>Le constat d'un diabétique :</strong> "Au quotidien, je gère des hypo et des hyperglycémies. C'est une bataille minute par minute. Mais mon endocrinologue me juge sur mon <strong>HbA1c</strong> (moyenne de 3 mois). Le problème, c'est que je ne 'vois' pas cette moyenne au jour le jour. Je navigue à vue sans savoir si mes efforts d'aujourd'hui paieront dans 3 mois."
+    <!-- Chat Screen -->
+    <div class="chat-container" id="chatContainer">
+        <header>
+            <div class="logo">
+                <span>🏥</span>
+                <h1>DiaSide Coach</h1>
             </div>
-            <p>
-                La difficulté majeure n'est pas seulement de corriger une glycémie à l'instant T, mais de garder le cap sur un objectif long terme invisible. <strong>DIASIDE a été créé pour rendre cet objectif visible.</strong>
-            </p>
-        </section>
+            <div class="user-info">
+                <span id="userEmail"></span>
+                <button onclick="logout()" style="background: rgba(255,255,255,0.2); border: none; padding: 0.5rem 1rem; border-radius: 8px; color: white; cursor: pointer;">Déconnexion</button>
+            </div>
+        </header>
 
-        <!-- 2. La Solution -->
-        <section id="solution">
-            <h2>💡 La Solution</h2>
-            <p>
-                DIASIDE comble le fossé entre la gestion quotidienne et l'objectif médical trimestriel. L'application projette votre stabilité actuelle vers l'avenir pour vous dire : <em>"Si tu continues comme ça aujourd'hui, voici où tu seras dans 3 mois."</em>
-            </p>
-        </section>
+        <div class="stats-bar">
+            <div class="stat">
+                <div class="stat-value" id="statTir">--%</div>
+                <div class="stat-label">TIR</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="statAvg">--</div>
+                <div class="stat-label">Moyenne</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="statHbA1c">--%</div>
+                <div class="stat-label">HbA1c</div>
+            </div>
+        </div>
 
-        <!-- 3. Fonctionnement -->
-        <section id="features">
-            <h2>⚙️ Fonctionnement & Moyens Mis en Œuvre</h2>
+        <div class="messages" id="messages">
+            <div class="message bot">
+                👋 Bonjour ! Je suis votre Coach DiaSide. Je suis là pour vous aider à gérer votre diabète de manière optimale.
+                <br><br>
+                Je peux analyser vos données glycémiques, vous donner des conseils nutritionnels et vous aider à atteindre vos objectifs.
+                <br><br>
+                <strong>Comment puis-je vous aider aujourd'hui ?</strong>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <button class="quick-action" onclick="sendQuickMessage('Analyse ma glycémie')">📊 Analyser ma glycémie</button>
+            <button class="quick-action" onclick="sendQuickMessage('Conseil alimentaire')">🥗 Conseil alimentaire</button>
+            <button class="quick-action" onclick="sendQuickMessage('Activité physique')">🏃 Activité physique</button>
+            <button class="quick-action" onclick="sendQuickMessage('Objectifs HbA1c')">🎯 Objectifs HbA1c</button>
+        </div>
+
+        <div class="actions" id="actions" style="display: none;">
+            <!-- Actions will be inserted here -->
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Écrivez votre message..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()" id="sendBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_URL = 'http://localhost:8000';
+        let token = localStorage.getItem('jwt_token');
+        let conversationId = null;
+
+        // Check auth
+        if (token) {
+            showChat();
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
             
-            <div class="features">
-                <div class="feature-card">
-                    <i class="fas fa-chart-line feature-icon"></i>
-                    <h3>Tableau de Bord Prédictif</h3>
-                    <p>Au lieu d'afficher juste votre glycémie actuelle, le dashboard montre votre <strong>HbA1c Estimée</strong> en temps réel et la compare à votre <strong>Objectif 2026</strong>. Un code couleur simple (Vert/Orange/Rouge) vous indique si vous êtes sur la bonne trajectoire.</p>
-                </div>
+            btn.disabled = true;
+            btn.textContent = 'Connexion...';
 
-                <div class="feature-card">
-                    <i class="fas fa-robot feature-icon"></i>
-                    <h3>Coach IA Holistique</h3>
-                    <p>Contrairement aux calculateurs de bolus classiques, le Coach DIASIDE (propulsé par Gemini 2.5) analyse le contexte global : <strong>Sommeil, Stress, Activité physique et Repas</strong>. Il ne vous gronde pas, il vous conseille pour ajuster votre style de vie.</p>
-                </div>
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
 
-                <div class="feature-card">
-                    <i class="fas fa-sync feature-icon"></i>
-                    <h3>Import EasyView</h3>
-                    <p>Fini la saisie manuelle. DIASIDE se connecte directement aux serveurs Medtrum (EasyView) pour récupérer vos données de capteur en continu, garantissant une analyse basée sur des données réelles et complètes.</p>
-                </div>
-            </div>
-        </section>
+                if (!response.ok) throw new Error('Identifiants invalides');
+                
+                const data = await response.json();
+                token = data.access_token;
+                localStorage.setItem('jwt_token', token);
+                
+                showChat();
+            } catch (error) {
+                alert(error.message);
+                btn.disabled = false;
+                btn.textContent = 'Se connecter';
+            }
+        });
 
-        <!-- 4. Sécurité -->
-        <section id="security">
-            <h2>🔒 Sécurité & Anonymat</h2>
-            <p>
-                La confiance est primordiale pour des données de santé. DIASIDE intègre des garde-fous stricts :
-            </p>
-            <ul>
-                <li><strong>Anonymisation des Données :</strong> Avant d'être envoyées au moteur d'intelligence artificielle, toutes les données identifiables (Nom, Email, IP) sont supprimées. L'IA ne voit qu'un "Profil Biologique" (ex: "Homme, 45 ans, Type 1") sans jamais savoir qui vous êtes.</li>
-                <li><strong>Garde-fous Médicaux (Guardrails) :</strong> Le système est bridé pour ne jamais donner de conseils de dosage médical (insuline). Il se limite strictement aux conseils d'hygiène de vie et renvoie vers un médecin en cas de doute.</li>
-                <li><strong>Hébergement Sécurisé :</strong> Les données sensibles sont chiffrées en base de données.</li>
-            </ul>
-        </section>
+        function showChat() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('chatContainer').classList.add('active');
+            loadStats();
+        }
 
-        <footer>
-            <p>DIASIDE - Projet Open Source | 2026</p>
-        </footer>
-    </main>
+        function logout() {
+            localStorage.removeItem('jwt_token');
+            token = null;
+            conversationId = null;
+            document.getElementById('authScreen').style.display = 'flex';
+            document.getElementById('chatContainer').classList.remove('active');
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('loginBtn').textContent = 'Se connecter';
+        }
+
+        async function loadStats() {
+            try {
+                const headers = { 'Authorization': `Bearer ${token}` };
+                
+                const [tirRes, hba1cRes] = await Promise.all([
+                    fetch(`${API_URL}/api/stats/tir?days=7`, { headers }),
+                    fetch(`${API_URL}/api/stats/hba1c`, { headers })
+                ]);
+
+                const tir = await tirRes.json();
+                const hba1c = await hba1cRes.json();
+
+                document.getElementById('statTir').textContent = `${tir.normal || 0}%`;
+                document.getElementById('statAvg').textContent = tir.avg || '--';
+                document.getElementById('statHbA1c').textContent = hba1c.estimated_hba1c ? `${hba1c.estimated_hba1c.toFixed(1)}%` : '--%';
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendQuickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            const sendBtn = document.getElementById('sendBtn');
+
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            sendBtn.disabled = true;
+
+            // Show typing indicator
+            showTyping();
+
+            try {
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                };
+
+                // Default snapshot (in real app, fetch from profile)
+                const snapshot = {
+                    age: 35,
+                    weight: 75,
+                    height: 175,
+                    diabetes_type: "Type 1",
+                    lab_data: {
+                        hba1c: 7.0,
+                        fasting_glucose: 120
+                    },
+                    lifestyle: {
+                        activity_level: "moderate",
+                        diet_type: "Balanced",
+                        is_smoker: false,
+                        gender: "Male",
+                        daily_step_goal: 10000
+                    }
+                };
+
+                const requestBody = {
+                    conversation_id: conversationId,
+                    snapshot: snapshot,
+                    user_message: message,
+                    load_history_from_db: true
+                };
+
+                const response = await fetch(`${API_URL}/api/chat/message`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) throw new Error('Erreur du serveur');
+
+                const data = await response.json();
+                
+                // Save conversation ID
+                if (!conversationId) {
+                    conversationId = data.conversation_id;
+                }
+
+                // Remove typing and add bot response
+                removeTyping();
+                addMessage(data.advice, 'bot');
+
+                // Show actions
+                if (data.actions && data.actions.length > 0) {
+                    showActions(data.actions);
+                }
+
+                // Refresh stats
+                loadStats();
+
+            } catch (error) {
+                removeTyping();
+                addMessage('Désolé, une erreur est survenue. Veuillez réessayer.', 'bot');
+                console.error(error);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        function addMessage(content, type) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = content.replace(/\n/g, '<br>');
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function showTyping() {
+            const messagesDiv = document.getElementById('messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot typing';
+            typingDiv.id = 'typing';
+            typingDiv.innerHTML = '<span></span><span></span><span></span>';
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeTyping() {
+            const typing = document.getElementById('typing');
+            if (typing) typing.remove();
+        }
+
+        function showActions(actions) {
+            const actionsDiv = document.getElementById('actions');
+            actionsDiv.innerHTML = '';
+            actionsDiv.style.display = 'flex';
+
+            actions.forEach(action => {
+                const chip = document.createElement('div');
+                chip.className = 'action-chip';
+                
+                let icon = '📌';
+                if (action.type === 'sport') icon = '🏃';
+                else if (action.type === 'diet') icon = '🥗';
+                else if (action.type === 'check') icon = '🔍';
+                else if (action.type === 'medical') icon = '🏥';
+
+                chip.innerHTML = `<span class="icon">${icon}</span>${action.label}`;
+                chip.onclick = () => sendQuickMessage(action.label);
+                actionsDiv.appendChild(chip);
+            });
+        }
+    </script>
 </body>
 </html>

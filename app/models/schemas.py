@@ -196,3 +196,93 @@ class FoodRecognitionRequest(BaseModel):
 class FoodRecognitionResponse(BaseModel):
     carbs: float = Field(..., description="Estimated carbohydrates in grams")
     advice: str = Field(..., description="AI-generated advice based on the analysis")
+
+# ==================== NOUVEAUX SCHEMAS POUR LA MEMOIRE DU CHATBOT ====================
+
+class MessageCreate(BaseModel):
+    """Schema pour créer un nouveau message"""
+    role: str = Field(..., description="Role: 'user' ou 'model'")
+    content: str = Field(..., description="Contenu du message")
+    metadata: Optional[dict] = Field(None, description="Métadonnées supplémentaires")
+
+
+class MessageResponse(BaseModel):
+    """Schema pour répondre un message"""
+    id: int
+    conversation_id: int
+    role: str
+    content: str
+    timestamp: datetime
+    metadata: Optional[dict] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class ConversationCreate(BaseModel):
+    """Schema pour créer une nouvelle conversation"""
+    title: Optional[str] = Field(None, description="Titre de la conversation")
+
+
+class ConversationResponse(BaseModel):
+    """Schema pour répondre une conversation"""
+    id: int
+    user_id: int
+    title: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    messages: List[MessageResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+
+class ConversationListResponse(BaseModel):
+    """Schema pour la liste des conversations"""
+    id: int
+    title: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    message_count: int = 0
+    
+    class Config:
+        from_attributes = True
+
+
+class UserMemoryCreate(BaseModel):
+    """Schema pour créer une mémoire utilisateur"""
+    memory_key: str = Field(..., description="Clé de mémoire (ex: 'food_preferences', 'allergies')")
+    memory_value: str = Field(..., description="Valeur de la mémoire (JSON stringifié)")
+
+
+class UserMemoryResponse(BaseModel):
+    """Schema pour répondre une mémoire utilisateur"""
+    id: int
+    user_id: int
+    memory_key: str
+    memory_value: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class ChatWithHistoryRequest(BaseModel):
+    """Schema pour envoyer un message avec gestion de l'historique côté serveur"""
+    conversation_id: Optional[int] = Field(None, description="ID de conversation existante (None pour nouvelle)")
+    snapshot: UserHealthSnapshot
+    user_message: str = Field(..., description="Message de l'utilisateur")
+    image_base64: Optional[str] = Field(None, description="Image en base64")
+    # Option pour charger l'historique récent depuis la DB
+    load_history_from_db: bool = Field(True, description="Charger l'historique depuis la DB")
+
+
+class EnhancedAIAnalysisResponse(BaseModel):
+    """Réponse enrichie du coach avec metadata"""
+    advice: str
+    actions: List[CoachAction] = []
+    debug_results: dict
+    conversation_id: int = Field(..., description="ID de la conversation")
+    message_id: int = Field(..., description="ID du message de l'assistant")
+    summary: Optional[str] = Field(None, description="Résumé automatique de la conversation")
