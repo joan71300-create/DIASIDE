@@ -9,6 +9,7 @@ import 'dart:convert';
 import '../services/coach_service.dart'; 
 import '../models/coach_models.dart'; 
 import '../providers/coach_provider.dart';
+import '../providers/coach_history_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/chat_bubble.dart';
 import '../../profile/health_profile_provider.dart';
