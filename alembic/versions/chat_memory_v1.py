@@ -1,8 +1,8 @@
-"""add_conversations_messages_user_memory
+"""chat memory v1
 
-Revision ID: add_conversations_messages_user_memory
-Revises: 
-Create Date: 2026-02-14 17:30:00.000000
+Revision ID: chat_mem_v1
+Revises: 467ca83eb72e
+Create Date: 2026-02-14 18:00:00.000000
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'add_conversations_messages_user_memory'
+revision: str = 'chat_mem_v1'
 down_revision: Union[str, None] = '467ca83eb72e'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,7 +24,7 @@ def upgrade() -> None:
         'conversations',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('title', sa.String(), nullable=True),
+        sa.Column('title', sa.String(length=255), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -38,7 +38,7 @@ def upgrade() -> None:
         'messages',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('conversation_id', sa.Integer(), nullable=False),
-        sa.Column('role', sa.String(), nullable=False),
+        sa.Column('role', sa.String(length=32), nullable=False),
         sa.Column('content', sa.Text(), nullable=False),
         sa.Column('timestamp', sa.DateTime(), nullable=True),
         sa.Column('extra_data', sa.JSON(), nullable=True),
@@ -53,7 +53,7 @@ def upgrade() -> None:
         'user_memories',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('memory_key', sa.String(), nullable=False),
+        sa.Column('memory_key', sa.String(length=128), nullable=False),
         sa.Column('memory_value', sa.Text(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
