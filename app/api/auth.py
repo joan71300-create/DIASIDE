@@ -18,11 +18,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 # Initialisation de Firebase Admin (une seule fois)
 # Les identifiants sont lus depuis une variable d'environnement (JSON string)
 if not firebase_admin._apps: # Check if app is not already initialized
-    # Vérifier si la variable d'environnement est définie et non vide
-    if settings.FIREBASE_CREDENTIALS_JSON:
-        service_account_info = json.loads(settings.FIREBASE_CREDENTIALS_JSON)
-        cred = credentials.Certificate(service_account_info)
-        firebase_admin.initialize_app(cred)
+    # Vérifier si la variable d'environnement est définie et non vide (et pas "{}")
+    if settings.FIREBASE_CREDENTIALS_JSON and settings.FIREBASE_CREDENTIALS_JSON != "{}":
+        try:
+            service_account_info = json.loads(settings.FIREBASE_CREDENTIALS_JSON)
+            cred = credentials.Certificate(service_account_info)
+            firebase_admin.initialize_app(cred)
+            print("✅ Firebase Admin initialisé avec succès")
+        except Exception as e:
+            print(f"⚠️ Erreur lors de l'initialisation de Firebase: {e}")
     else:
         print("⚠️ FIREBASE_CREDENTIALS_JSON n'est pas configuré. Firebase Admin ne sera pas initialisé.")
 

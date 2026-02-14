@@ -14,8 +14,8 @@ class CoachService {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConfig.baseUrl, // Use the centralized ApiConfig
-        connectTimeout: const Duration(seconds: 15), // Gemini can be slow
-        receiveTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 30), // Increased for production
+        receiveTimeout: const Duration(seconds: 30),
       ),
     );
   }

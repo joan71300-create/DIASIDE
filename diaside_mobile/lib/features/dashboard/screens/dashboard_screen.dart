@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../widgets/hba1c_card.dart';
 import '../widgets/glucose_chart.dart';
 import '../widgets/tir_card.dart';
+import '../widgets/glucose_stats_card.dart'; // Import du nouveau widget
 import '../../glucose/glucose_provider.dart'; // Import du provider
 import 'package:diaside_mobile/core/constants/api_constants.dart'; // Import ApiConfig
 
@@ -191,6 +192,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ),
             ],
+
+            // Statistiques glycémiques calculées (Moyenne + Stabilité)
+            if (glucoseEntries.isNotEmpty)
+              GlucoseStatsCard(entries: glucoseEntries),
 
             if (_serverHbA1c == null)
               if (_isLoading)

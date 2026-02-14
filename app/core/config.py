@@ -17,9 +17,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
-    # AI Services
-    GEMINI_API_KEY: str
-    OPIK_API_KEY: str
+    # AI Services (Optionnel pour le dev local)
+    GEMINI_API_KEY: str = "mock_key"
+    OPIK_API_KEY: str = "mock_key"
     
     # Database
     DATABASE_URL: str = "sqlite:///./diaside.db"
@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     # Simulation
     ENABLE_SIMULATION_ENDPOINT: bool = False
     
-    # Firebase
-    FIREBASE_CREDENTIALS_JSON: str # Doit être chargé depuis .env comme JSON string
+    # Firebase (Optionnel pour le dev local)
+    FIREBASE_CREDENTIALS_JSON: str = "{}"
 
     model_config = ConfigDict(env_file=".env", extra="ignore")
 

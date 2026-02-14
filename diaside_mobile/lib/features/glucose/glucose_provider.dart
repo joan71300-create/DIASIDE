@@ -19,8 +19,8 @@ class GlucoseNotifier extends StateNotifier<List<GlucoseEntry>> {
   void _initDio() {
     _dio = Dio(BaseOptions(
       baseUrl: ApiConfig.baseUrl, // Use the centralized ApiConfig
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 30), // Increased for production
+      receiveTimeout: const Duration(seconds: 30),
     ));
   }
 

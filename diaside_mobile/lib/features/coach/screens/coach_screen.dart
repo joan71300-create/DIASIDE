@@ -10,6 +10,9 @@ import '../services/coach_service.dart';
 import '../models/coach_models.dart'; 
 import '../providers/coach_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/chat_bubble.dart';
+import '../../profile/health_profile_provider.dart';
+import '../../glucose/glucose_provider.dart';
 
 class CoachScreen extends ConsumerStatefulWidget {
   const CoachScreen({super.key});
@@ -230,6 +233,29 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(coachProvider);
+    final healthProfile = ref.watch(healthProfileProvider);
+    final glucoseEntries = ref.watch(glucoseProvider);
+
+    // Update _snapshot with real health profile data if available
+    if (healthProfile != null) {
+      _snapshot = UserHealthSnapshot(
+        age: healthProfile.age ?? 35,
+        weight: healthProfile.weight ?? 75,
+        height: healthProfile.height ?? 175,
+        diabetesType: healthProfile.diabetesType,
+        labData: LabData(
+          hba1c: healthProfile.targetHbA1c ?? 7.0,
+          fastingGlucose: glucoseEntries.isNotEmpty ? glucoseEntries.last.value.toInt() : 120,
+        ),
+        lifestyle: LifestyleProfile(
+          activityLevel: healthProfile.activityLevel,
+          dietType: "Balanced",
+          isSmoker: false,
+          gender: healthProfile.gender ?? "Male",
+          dailyStepGoal: 10000
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -330,56 +356,14 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
 
   Widget _buildChatBubble(ChatMessage msg) {
     final isUser = msg.role == "user";
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isUser ? AppColors.primary : AppColors.background,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(20),
-            topRight: const Radius.circular(20),
-            bottomLeft: Radius.circular(isUser ? 20 : 0),
-            bottomRight: Radius.circular(isUser ? 0 : 20),
-          ),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
-          ],
-        ),
-        child: isUser 
-          ? Text(msg.content, style: GoogleFonts.poppins(color: Colors.white, fontSize: 15))
-          : MarkdownBody(
-              data: msg.content,
-              styleSheet: MarkdownStyleSheet(
-                p: GoogleFonts.poppins(color: AppColors.textPrimary, fontSize: 15, height: 1.5),
-              ),
-            ),
-      ),
+    return ChatBubble(
+      content: msg.content,
+      isUser: isUser,
     );
   }
 
   Widget _buildTypingIndicator() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary.withValues(alpha: 0.5))),
-            const SizedBox(width: 8),
-            Text("Analyse en cours...", style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textTertiary)),
-          ],
-        ),
-      ),
-    );
+    return const TypingIndicator();
   }
 
   Widget _buildActionShortcuts(List<CoachAction> actions) {
