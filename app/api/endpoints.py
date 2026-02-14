@@ -834,7 +834,7 @@ async def send_chat_message(
         conversation_id=conversation.id,
         role="model",
         content=ai_response.get("advice", ""),
-        metadata={"actions": ai_response.get("actions", [])}
+        extra_data={"actions": ai_response.get("actions", [])}
     )
     db.add(assistant_message)
     

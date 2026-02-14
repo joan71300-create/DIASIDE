@@ -213,7 +213,7 @@ class MessageResponse(BaseModel):
     role: str
     content: str
     timestamp: datetime
-    metadata: Optional[dict] = None
+    extra_data: Optional[dict] = None
     
     class Config:
         from_attributes = True

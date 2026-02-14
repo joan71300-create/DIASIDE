@@ -107,7 +107,7 @@ class Message(Base):
     role = Column(String)  # "user" ou "model" (assistant)
     content = Column(Text)  # Contenu du message
     timestamp = Column(DateTime, default=datetime.utcnow)
-    metadata = Column(JSON, nullable=True)  # Métadonnées supplémentaires (ex: actions suggérées)
+    extra_data = Column(JSON, nullable=True)  # Métadonnées supplémentaires (ex: actions suggérées)
     
     conversation = relationship("Conversation", back_populates="messages")
 

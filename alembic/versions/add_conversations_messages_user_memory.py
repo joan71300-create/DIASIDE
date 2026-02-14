@@ -41,7 +41,7 @@ def upgrade() -> None:
         sa.Column('role', sa.String(), nullable=False),
         sa.Column('content', sa.Text(), nullable=False),
         sa.Column('timestamp', sa.DateTime(), nullable=True),
-        sa.Column('metadata', sa.JSON(), nullable=True),
+        sa.Column('extra_data', sa.JSON(), nullable=True),
         sa.ForeignKeyConstraint(['conversation_id'], ['conversations.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
