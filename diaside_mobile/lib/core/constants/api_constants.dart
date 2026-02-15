@@ -9,18 +9,8 @@ class ApiConfig {
   static const String _localUrl = 'http://10.0.2.2:8000';
   
   static String get baseUrl {
-    // En production (web déployé), utiliser Render
-    if (kIsWeb) {
-      return _renderUrl;
-    }
-    // En développement sur émulateur Android
-    else if (Platform.isAndroid) {
-      return _localUrl;
-    }
-    // Pour iOS Simulator ou Desktop
-    else {
-      return _localUrl;
-    }
+    // En production (vrai téléphone ou web), utiliser Render
+    return _renderUrl;
   }
   
   // Alias pour compatibilité
