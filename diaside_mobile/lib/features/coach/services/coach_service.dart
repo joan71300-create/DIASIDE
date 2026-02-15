@@ -97,10 +97,16 @@ class CoachService {
       final token = await _storage.read(key: 'jwt_token');
       if (token == null) throw Exception("No token found");
 
+      // Use JSON endpoint with base64
       final response = await _dio.post(
-        '/api/vision/food',
+        '/api/vision/food/base64',
         data: requestJson,
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
       );
 
       if (response.statusCode == 200) {

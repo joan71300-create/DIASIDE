@@ -463,7 +463,7 @@ def get_profile(
         )
     return db_quest
 
-# --- NEW ENDPOINT FOR FOOD RECOGNITION ---
+# --- NEW ENDPOINT FOR FOOD RECOGNITION (Base64) ---
 @router.post("/vision/food", response_model=schemas.FoodRecognitionResponse)
 @track(name="api_food_recognition")
 async def analyze_food_image(
@@ -471,7 +471,7 @@ async def analyze_food_image(
     current_glucose: float = Form(...),
     trend: str = Form(...),
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db) # db is included for consistency, though not directly used in analyze_meal
+    db: Session = Depends(get_db)
 ):
     """
     Analyzes an image of food to estimate nutritional information (carbs) and provide advice.
@@ -497,8 +497,45 @@ async def analyze_food_image(
 
     except Exception as e:
         # Catch any other potential errors during analysis
-        # Log the error for debugging
-        print(f"Error during food analysis: {e}") # Consider a more robust logging mechanism
+        print(f"Error during food analysis: {e}")
+        raise HTTPException(status_code=500, detail="Error processing food image analysis.")
+
+
+# --- ENDPOINT FOR FOOD RECOGNITION (Base64 JSON) ---
+@router.post("/vision/food/base64", response_model=schemas.FoodRecognitionResponse)
+@track(name="api_food_recognition_base64")
+async def analyze_food_image_base64(
+    payload: schemas.FoodRecognitionRequest,
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Analyzes an image of food using base64 string.
+    """
+    try:
+        # Decode base64 to bytes
+        image_data = payload.image_base64
+        if "," in image_data:
+            image_data = image_data.split(",")[1]
+        image_bytes = base64.b64decode(image_data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error decoding image: {e}")
+
+    try:
+        # Call the VisionService to analyze the meal
+        analysis_result = await vision_service.analyze_meal(
+            image_bytes=image_bytes,
+            current_glucose=payload.current_glucose,
+            trend=payload.trend
+        )
+
+        # Format the result into the response model
+        return schemas.FoodRecognitionResponse(
+            carbs=float(analysis_result.get("carbs", 0.0)),
+            advice=analysis_result.get("advice", "No advice available.")
+        )
+
+    except Exception as e:
+        print(f"Error during food analysis: {e}")
         raise HTTPException(status_code=500, detail="Error processing food image analysis.")
 
 # --- END NEW ENDPOINT ---
