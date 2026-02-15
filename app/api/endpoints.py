@@ -42,6 +42,68 @@ def connect_medtrum(
             payload.password,
             days=90 # On récupère 90 jours direct pour l`HbA1c
         )
+        
+        # Sauvegarder les identifiants pour la sync automatique
+        creds = db.query(models.MedtrumCredentials).filter(
+            models.MedtrumCredentials.user_id == current_user.id
+        ).first()
+        if creds:
+            creds.username = payload.username
+            creds.password = payload.password
+            creds.region = payload.region
+        else:
+            creds = models.MedtrumCredentials(
+                user_id=current_user.id,
+                username=payload.username,
+                password=payload.password,
+                region=payload.region
+            )
+            db.add(creds)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/medtrum/sync")
+@track(name="api_medtrum_sync_auto")
+def sync_medtrum_auto(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Synchronise automatiquement les données Medtrum si les identifiants sont stockés.
+    Appelé par l'app à chaque ouverture.
+    """
+    # Récupérer les identifiants
+    creds = db.query(models.MedtrumCredentials).filter(
+        models.MedtrumCredentials.user_id == current_user.id
+    ).first()
+    
+    if not creds:
+        return {"status": "no_credentials", "message": "Aucun compte Medtrum connecté"}
+    
+    try:
+        # Configurer la région
+        if creds.region == "com":
+            medtrum_service.BASE_URL = "https://easyview.medtrum.com"
+        else:
+            medtrum_service.BASE_URL = "https://easyview.medtrum.fr"
+        
+        # Sync seulement 1 jour (données récentes)
+        result = medtrum_service.sync_data(
+            db,
+            current_user,
+            creds.username,
+            creds.password,
+            days=1
+        )
+        
+        # Mettre à jour last_sync
+        creds.last_sync = datetime.utcnow()
+        db.commit()
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

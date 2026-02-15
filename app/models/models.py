@@ -17,6 +17,7 @@ class User(Base):
     meals = relationship("Meal", back_populates="user")
     conversations = relationship("Conversation", back_populates="user")
     user_memories = relationship("UserMemory", back_populates="user")
+    medtrum_credentials = relationship("MedtrumCredentials", back_populates="user", uselist=False)
 
 class Questionnaire(Base):
     __tablename__ = "questionnaires"
@@ -124,3 +125,17 @@ class UserMemory(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = relationship("User", back_populates="user_memories")
+
+
+class MedtrumCredentials(Base):
+    """Stocke les identifiants Medtrum pour la sync automatique"""
+    __tablename__ = "medtrum_credentials"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    username = Column(String)
+    password = Column(String)  # À chiffrer en production !
+    region = Column(String, default="fr")  # "fr" ou "com"
+    last_sync = Column(DateTime, nullable=True)
+    
+    user = relationship("User")

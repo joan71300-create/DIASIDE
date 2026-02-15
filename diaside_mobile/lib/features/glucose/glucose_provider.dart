@@ -60,6 +60,35 @@ class GlucoseNotifier extends StateNotifier<List<GlucoseEntry>> {
     state = [...state, newEntry];
     // TODO: Send to API
   }
+
+  /// Synchronise automatiquement les données Medtrum à l'ouverture de l'app
+  Future<bool> syncMedtrumIfNeeded() async {
+    try {
+      _initDio();
+      final token = await _storage.read(key: 'jwt_token');
+      if (token == null) return false;
+
+      // Vérifier si les identifiants Medtrum sont stockés
+      final medtrumUser = await _storage.read(key: 'medtrum_user');
+      if (medtrumUser == null) return false;
+
+      // Appeler le endpoint de sync
+      final response = await _dio.post(
+        '/api/medtrum/sync',
+        options: Options(headers: {'Authorization': 'Bearer $token'})
+      );
+
+      if (response.statusCode == 200) {
+        // Rafraîchir l'historique après sync
+        await fetchHistory();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print("Erreur sync Medtrum: $e");
+      return false;
+    }
+  }
 }
 
 final glucoseProvider = StateNotifierProvider<GlucoseNotifier, List<GlucoseEntry>>((ref) {
